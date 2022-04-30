@@ -93,7 +93,7 @@ alpha_number_of_iterations
 
 ## Constructor 
 ```
-def **__init__**(  
+def __init__(  
     self,  
     number_of_input_neurons: int,  
     number_of_neurons: int,  
@@ -116,7 +116,7 @@ def **__init__**(
 ## Methods
 
 ```
-def **initialize_weights**(  
+def initialize_weights(  
     self,  
     is_pooling_layer: bool = False,  
     noise_amplitude: float = 0.01,  
@@ -127,7 +127,7 @@ For the generation of the initital weights. Switches between normal initial rand
 ---
 
 ```
-def **initialize_epsilon_xy**(  
+def initialize_epsilon_xy(  
     self,  
     eps_xy_intitial: float,  
 ) -> None:  
@@ -136,31 +136,31 @@ Creates initial epsilon xy matrices.
 
 ---
 ```
-def **set_h_init_to_uniform**(self) -> None:  
+def set_h_init_to_uniform(self) -> None:  
 ```
 
 ---
 ```
-def **backup_epsilon_xy**(self) -> None:  
-def **restore_epsilon_xy**(self) -> None:  
-def **backup_weights(self)** -> None:  
-def **restore_weights(self)** -> None:  
+def backup_epsilon_xy(self) -> None:  
+def restore_epsilon_xy(self) -> None:  
+def backup_weights(self) -> None:  
+def restore_weights(self) -> None:  
 ```
 
 ---
 ```
-def **threshold_epsilon_xy**(self, threshold: float) -> None:  
-def **threshold_weights**(self, threshold: float) -> None:  
+def threshold_epsilon_xy(self, threshold: float) -> None:  
+def threshold_weights(self, threshold: float) -> None:  
 ```
 
 ---
 ```
-def **mean_epsilon_xy**(self) -> None:  
+def mean_epsilon_xy(self) -> None:  
 ```
 
 ---
 ```
-def **norm_weights**(self) -> None:
+def norm_weights(self) -> None:
 ```
 
 # Parameters in JSON file
