@@ -76,6 +76,7 @@ noise_amplitude: float = 0.01,
 ) -> None:  
 For the generation of the initital weights. Switches between normal initial random weights and pooling weights.
 
+---
 
 def **initialize_epsilon_xy**(  
 self,  
@@ -83,19 +84,27 @@ eps_xy_intitial: float,
 ) -> None:  
 Creates initial epsilon xy matrices.
 
+---
+
 def **set_h_init_to_uniform**(self) -> None:  
+
+---
 
 def **backup_epsilon_xy**(self) -> None:  
 def **restore_epsilon_xy**(self) -> None:  
 def **backup_weights(self)** -> None:  
 def **restore_weights(self)** -> None:  
 
+---
 
 def **threshold_epsilon_xy**(self, threshold: float) -> None:  
 def **threshold_weights**(self, threshold: float) -> None:  
 
+---
 
 def **mean_epsilon_xy**(self) -> None:  
+
+---
 
 def **norm_weights**(self) -> None:
 
