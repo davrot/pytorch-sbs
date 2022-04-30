@@ -25,4 +25,7 @@ You need to modify the Makefile in the C++ directory to your Python installation
 In addition yoir Python installation needs the PyBind11 package installed. You might want to perform a  
 pip install pybind11  
 The Makefile uses clang as a compiler. If you want something else then you need to change the Makefile.
+The SbS.py autodetectes if the required C++ .so modules are in the same directory as the SbS.py file.  
+
+# Parameters
 
