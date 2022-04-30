@@ -278,17 +278,19 @@ else:
     raise Exception("Optimizer not implemented")
 
 if cfg.learning_parameters.lr_schedule_name == "ReduceLROnPlateau":
-    lr_scheduler_wf = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_wf,
-        factor=cfg.learning_parameters.lr_scheduler_factor,
-        patience=cfg.learning_parameters.lr_scheduler_patience,
-    )
+    if cfg.learning_parameters.lr_scheduler_patience_w > 0:
+        lr_scheduler_wf = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_wf,
+            factor=cfg.learning_parameters.lr_scheduler_factor_w,
+            patience=cfg.learning_parameters.lr_scheduler_patience_w,
+        )
 
-    lr_scheduler_eps = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_eps,
-        factor=cfg.learning_parameters.lr_scheduler_factor,
-        patience=cfg.learning_parameters.lr_scheduler_patience,
-    )
+    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
+        lr_scheduler_eps = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_eps,
+            factor=cfg.learning_parameters.lr_scheduler_factor_eps_xy,
+            patience=cfg.learning_parameters.lr_scheduler_patience_eps_xy,
+        )
 else:
     raise Exception("lr_scheduler not implemented")
 
@@ -490,8 +492,10 @@ with torch.no_grad():
 
                     # Let the torch learning rate scheduler update the
                     # learning rates of the optimiers
-                    lr_scheduler_wf.step(my_loss_for_batch)
-                    lr_scheduler_eps.step(my_loss_for_batch)
+                    if cfg.learning_parameters.lr_scheduler_patience_w > 0:
+                        lr_scheduler_wf.step(my_loss_for_batch)
+                    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
+                        lr_scheduler_eps.step(my_loss_for_batch)
 
                     tb.add_scalar(
                         "Train Performance", 100.0 - performance, cfg.learning_step
