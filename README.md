@@ -31,83 +31,137 @@ The SbS.py autodetectes if the required C++ .so modules are in the same director
 
 ## Variables
 
+```
 epsilon_xy  
+```
+
+```
 epsilon_0  
+```
+
+```
 epsilon_t  
+```
+
+```
 weights  
+```
+
+```
 kernel_size  
+```
+
+```
 stride  
+```
+
+```
 dilation  
+```
+
+```
 padding  
+```
+
+```
 output_size  
+```
+
+```
 number_of_spikes  
+```
+
+```
 number_of_cpu_processes  
+```
+
+```
 number_of_neurons  
+```
+
+```
 number_of_input_neurons  
+```
+
+```
 h_initial  
+```
+
+```
 alpha_number_of_iterations  
+```
 
 ## Constructor 
+```
 def **__init__**(  
-self,  
-number_of_input_neurons: int,  
-number_of_neurons: int,  
-input_size: list[int],  
-forward_kernel_size: list[int],  
-number_of_spikes: int,  
-epsilon_t: torch.Tensor,  
-epsilon_xy_intitial: float = 0.1,  
-epsilon_0: float = 1.0,  
-weight_noise_amplitude: float = 0.01,  
-is_pooling_layer: bool = False,  
-strides: list[int] = [1, 1],  
-dilation: list[int] = [0, 0],  
-padding: list[int] = [0, 0],  
-alpha_number_of_iterations: int = 0,  
-number_of_cpu_processes: int = 1,  
+    self,  
+    number_of_input_neurons: int,  
+    number_of_neurons: int,  
+    input_size: list[int],  
+    forward_kernel_size: list[int],  
+    number_of_spikes: int,  
+    epsilon_t: torch.Tensor,  
+    epsilon_xy_intitial: float = 0.1,  
+    epsilon_0: float = 1.0,  
+    weight_noise_amplitude: float = 0.01,  
+    is_pooling_layer: bool = False,  
+    strides: list[int] = [1, 1],  
+    dilation: list[int] = [0, 0],  
+    padding: list[int] = [0, 0],  
+    alpha_number_of_iterations: int = 0,  
+    number_of_cpu_processes: int = 1,  
 ) -> None:
+```
 
 ## Methods
 
+```
 def **initialize_weights**(  
-self,  
-is_pooling_layer: bool = False,  
-noise_amplitude: float = 0.01,  
+    self,  
+    is_pooling_layer: bool = False,  
+    noise_amplitude: float = 0.01,  
 ) -> None:  
+```
 For the generation of the initital weights. Switches between normal initial random weights and pooling weights.
 
 ---
 
+```
 def **initialize_epsilon_xy**(  
-self,  
-eps_xy_intitial: float,  
+    self,  
+    eps_xy_intitial: float,  
 ) -> None:  
+```
 Creates initial epsilon xy matrices.
 
 ---
-
+```
 def **set_h_init_to_uniform**(self) -> None:  
+```
 
 ---
-
+```
 def **backup_epsilon_xy**(self) -> None:  
 def **restore_epsilon_xy**(self) -> None:  
 def **backup_weights(self)** -> None:  
 def **restore_weights(self)** -> None:  
+```
 
 ---
-
+```
 def **threshold_epsilon_xy**(self, threshold: float) -> None:  
 def **threshold_weights**(self, threshold: float) -> None:  
+```
 
 ---
-
+```
 def **mean_epsilon_xy**(self) -> None:  
+```
 
 ---
-
+```
 def **norm_weights**(self) -> None:
-
+```
 
 # Parameters in JSON file
 
