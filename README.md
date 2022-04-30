@@ -29,6 +29,28 @@ The SbS.py autodetectes if the required C++ .so modules are in the same director
 
 # Parameters in JSON file
 
+data_mode: str = field(default="")  
+data_path: str = field(default="./")  
+
+batch_size: int = field(default=500)  
+
+learning_step: int = field(default=0)  
+learning_step_max: int = field(default=10000)  
+
+number_of_cpu_processes: int = field(default=-1)  
+
+number_of_spikes: int = field(default=0)  
+cooldown_after_number_of_spikes: int = field(default=0)  
+
+weight_path: str = field(default="./Weights/")  
+eps_xy_path: str = field(default="./EpsXY/")  
+    
+reduction_cooldown: float = field(default=25.0)  
+epsilon_0: float = field(default=1.0)  
+
+update_after_x_batch: float = field(default=1.0)  
+
+
 ## network_structure (required!)
 Parameters of the network. The details about its layers and the number of output neurons.  
 
@@ -81,18 +103,18 @@ alpha_number_of_iterations: int = field(default=0)
 ## augmentation
 Parameters used for data augmentation.  
 
-crop_width_in_pixel: int = field(default=2)
+crop_width_in_pixel: int = field(default=2)  
 
-flip_p: float = field(default=0.5)
+flip_p: float = field(default=0.5)  
 
-jitter_brightness: float = field(default=0.5)
-jitter_contrast: float = field(default=0.1)
-jitter_saturation: float = field(default=0.1)
-jitter_hue: float = field(default=0.15)
+jitter_brightness: float = field(default=0.5)  
+jitter_contrast: float = field(default=0.1)  
+jitter_saturation: float = field(default=0.1)  
+jitter_hue: float = field(default=0.15)  
 
 
 ## ImageStatistics (please ignore)
 (Statistical) information about the input. i.e. mean values and the x and y size of the input  
 
-mean: list[float] = field(default_factory=list)
-the_size: list[int] = field(default_factory=list)
+mean: list[float] = field(default_factory=list)  
+the_size: list[int] = field(default_factory=list)  
