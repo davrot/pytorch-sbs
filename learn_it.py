@@ -179,19 +179,7 @@ logging.info("*** Network generated.")
 for id in range(0, len(network)):
     # Load previous weights and epsilon xy
     if cfg.learning_step > 0:
-        network[id].weights = torch.tensor(
-            np.load(
-                cfg.weight_path
-                + "/Weight_L"
-                + str(id)
-                + "_S"
-                + str(cfg.learning_step)
-                + ".npy"
-            ),
-            dtype=torch.float64,
-        )
-
-        wf[id] = np.load(
+        filename = (
             cfg.weight_path
             + "/Weight_L"
             + str(id)
@@ -199,20 +187,14 @@ for id in range(0, len(network)):
             + str(cfg.learning_step)
             + ".npy"
         )
+        if os.path.exists(filename) is True:
+            network[id].weights = torch.tensor(
+                np.load(filename),
+                dtype=torch.float64,
+            )
+            wf[id] = np.load(filename)
 
-        network[id].epsilon_xy = torch.tensor(
-            np.load(
-                cfg.eps_xy_path
-                + "/EpsXY_L"
-                + str(id)
-                + "_S"
-                + str(cfg.learning_step)
-                + ".npy"
-            ),
-            dtype=torch.float64,
-        )
-
-        eps_xy[id] = np.load(
+        filename = (
             cfg.eps_xy_path
             + "/EpsXY_L"
             + str(id)
@@ -220,6 +202,12 @@ for id in range(0, len(network)):
             + str(cfg.learning_step)
             + ".npy"
         )
+        if os.path.exists(filename) is True:
+            network[id].epsilon_xy = torch.tensor(
+                np.load(filename),
+                dtype=torch.float64,
+            )
+            eps_xy[id] = np.load(filename)
 
 for id in range(0, len(network)):
 
@@ -578,7 +566,7 @@ with torch.no_grad():
                             time_0 = time.perf_counter()
 
                             h_h: torch.Tensor = network(
-                                the_dataset_train.pattern_filter_test(h_x, cfg).type(
+                                the_dataset_test.pattern_filter_test(h_x, cfg).type(
                                     dtype=torch.float64
                                 )
                             )
