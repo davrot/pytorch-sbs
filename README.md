@@ -165,92 +165,244 @@ def norm_weights(self) -> None:
 
 # Parameters in JSON file
 
+```
 data_mode: str = field(default="")  
+```
 data_path: str = field(default="./")  
+```
 
+```
 batch_size: int = field(default=500)  
+```
 
+```
 learning_step: int = field(default=0)  
+```
+
+```
 learning_step_max: int = field(default=10000)  
+```
 
+
+```
 number_of_cpu_processes: int = field(default=-1)  
+```
 
+
+```
 number_of_spikes: int = field(default=0)  
+```
+
+```
 cooldown_after_number_of_spikes: int = field(default=0)  
+```
 
+
+```
 weight_path: str = field(default="./Weights/")  
-eps_xy_path: str = field(default="./EpsXY/")  
-    
-reduction_cooldown: float = field(default=25.0)  
-epsilon_0: float = field(default=1.0)  
+```
 
+```
+eps_xy_path: str = field(default="./EpsXY/")  
+```
+    
+
+```
+reduction_cooldown: float = field(default=25.0)  
+```
+
+```
+epsilon_0: float = field(default=1.0)  
+```
+
+
+```
 update_after_x_batch: float = field(default=1.0)  
+```
 
 
 ## network_structure (required!)
 Parameters of the network. The details about its layers and the number of output neurons.  
 
+
+```
 number_of_output_neurons: int = field(default=0)  
+```
+
+```
 forward_neuron_numbers: list[list[int]] = field(default_factory=list)  
+```
+
+```
 is_pooling_layer: list[bool] = field(default_factory=list)  
+```
 
+
+```
 forward_kernel_size: list[list[int]] = field(default_factory=list)  
-strides: list[list[int]] = field(default_factory=list)  
-dilation: list[list[int]] = field(default_factory=list)  
-padding: list[list[int]] = field(default_factory=list)  
+```
 
+```
+strides: list[list[int]] = field(default_factory=list)  
+```
+
+```
+dilation: list[list[int]] = field(default_factory=list)  
+```
+
+```
+padding: list[list[int]] = field(default_factory=list)  
+```
+
+
+```
 w_trainable: list[bool] = field(default_factory=list)  
+```
+
+```
 eps_xy_trainable: list[bool] = field(default_factory=list)  
+```
+
+```
 eps_xy_mean: list[bool] = field(default_factory=list)  
+```
 
 
 ## learning_parameters
 Parameter required for training   
 
+
+```
 learning_active: bool = field(default=True)  
+```
 
+
+```
 loss_coeffs_mse: float = field(default=0.5)  
+```
+
+```
 loss_coeffs_kldiv: float = field(default=1.0)  
+```
 
+
+```
 optimizer_name: str = field(default="Adam")  
+```
+
+```
 learning_rate_gamma_w: float = field(default=-1.0)  
+```
+
+```
 learning_rate_gamma_eps_xy: float = field(default=-1.0)  
+```
+
+```
 learning_rate_threshold_w: float = field(default=0.00001)  
+```
+
+```
 learning_rate_threshold_eps_xy: float = field(default=0.00001)  
+```
 
+
+```
 lr_schedule_name: str = field(default="ReduceLROnPlateau")  
+```
+
+```
 lr_scheduler_factor_w: float = field(default=0.75)  
+```
+
+```
 lr_scheduler_patience_w: int = field(default=-1)  
+```
 
+
+```
 lr_scheduler_factor_eps_xy: float = field(default=0.75)  
+```
+
+```
 lr_scheduler_patience_eps_xy: int = field(default=-1)  
+```
 
+
+```
 number_of_batches_for_one_update: int = field(default=1)  
+```
+
+```
 overload_path: str = field(default="./Previous")  
+```
 
+
+```
 weight_noise_amplitude: float = field(default=0.01)  
+```
+
+```
 eps_xy_intitial: float = field(default=0.1)  
+```
 
+
+```
 test_every_x_learning_steps: int = field(default=50)  
-test_during_learning: bool = field(default=True)  
+```
 
+```
+test_during_learning: bool = field(default=True)  
+```
+
+
+```
 alpha_number_of_iterations: int = field(default=0)  
+```
 
 ## augmentation
 Parameters used for data augmentation.  
 
+
+```
 crop_width_in_pixel: int = field(default=2)  
+```
 
+
+```
 flip_p: float = field(default=0.5)  
+```
 
+
+```
 jitter_brightness: float = field(default=0.5)  
-jitter_contrast: float = field(default=0.1)  
-jitter_saturation: float = field(default=0.1)  
-jitter_hue: float = field(default=0.15)  
+```
 
+```
+jitter_contrast: float = field(default=0.1)  
+```
+
+```
+jitter_saturation: float = field(default=0.1)  
+```
+
+```
+jitter_hue: float = field(default=0.15)  
+```
+
+
+```
+use_on_off_filter: bool = field(default=True)
+```
 
 ## ImageStatistics (please ignore)
 (Statistical) information about the input. i.e. mean values and the x and y size of the input  
 
+
+```
 mean: list[float] = field(default_factory=list)  
+```
+
+```
 the_size: list[int] = field(default_factory=list)  
+```
