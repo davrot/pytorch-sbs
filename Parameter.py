@@ -42,12 +42,14 @@ class Network:
     its layers and the number of output neurons."""
 
     number_of_output_neurons: int = field(default=0)
-    forward_kernel_size: list[list[int]] = field(default_factory=list)
     forward_neuron_numbers: list[list[int]] = field(default_factory=list)
+    is_pooling_layer: list[bool] = field(default_factory=list)
+
+    forward_kernel_size: list[list[int]] = field(default_factory=list)
     strides: list[list[int]] = field(default_factory=list)
     dilation: list[list[int]] = field(default_factory=list)
     padding: list[list[int]] = field(default_factory=list)
-    is_pooling_layer: list[bool] = field(default_factory=list)
+
     w_trainable: list[bool] = field(default_factory=list)
     eps_xy_trainable: list[bool] = field(default_factory=list)
     eps_xy_mean: list[bool] = field(default_factory=list)
@@ -57,24 +59,34 @@ class Network:
 class LearningParameters:
     """Parameter required for training"""
 
+    learning_active: bool = field(default=True)
+
     loss_coeffs_mse: float = field(default=0.5)
     loss_coeffs_kldiv: float = field(default=1.0)
+
+    optimizer_name: str = field(default="Adam")
     learning_rate_gamma_w: float = field(default=-1.0)
     learning_rate_gamma_eps_xy: float = field(default=-1.0)
     learning_rate_threshold_w: float = field(default=0.00001)
     learning_rate_threshold_eps_xy: float = field(default=0.00001)
-    learning_active: bool = field(default=True)
+
+    lr_schedule_name: str = field(default="ReduceLROnPlateau")
+    lr_scheduler_factor_w: float = field(default=0.75)
+    lr_scheduler_patience_w: int = field(default=-1)
+
+    lr_scheduler_factor_eps_xy: float = field(default=0.75)
+    lr_scheduler_patience_eps_xy: int = field(default=-1)
+
+    number_of_batches_for_one_update: int = field(default=1)
+    overload_path: str = field(default="./Previous")
+
     weight_noise_amplitude: float = field(default=0.01)
     eps_xy_intitial: float = field(default=0.1)
+
     test_every_x_learning_steps: int = field(default=50)
     test_during_learning: bool = field(default=True)
-    lr_scheduler_factor: float = field(default=0.75)
-    lr_scheduler_patience: int = field(default=10)
-    optimizer_name: str = field(default="Adam")
-    lr_schedule_name: str = field(default="ReduceLROnPlateau")
-    number_of_batches_for_one_update: int = field(default=1)
+
     alpha_number_of_iterations: int = field(default=0)
-    overload_path: str = field(default="./Previous")
 
 
 @dataclass
@@ -82,11 +94,15 @@ class Augmentation:
     """Parameters used for data augmentation."""
 
     crop_width_in_pixel: int = field(default=2)
+
     flip_p: float = field(default=0.5)
+
     jitter_brightness: float = field(default=0.5)
     jitter_contrast: float = field(default=0.1)
     jitter_saturation: float = field(default=0.1)
     jitter_hue: float = field(default=0.15)
+
+    use_on_off_filter: bool = field(default=True)
 
 
 @dataclass

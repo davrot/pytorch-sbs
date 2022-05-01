@@ -135,10 +135,13 @@ class DatasetMNIST(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-        my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        gray: torch.Tensor = my_on_off_filter(
-            pattern[:, 0:1, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
+            gray: torch.Tensor = my_on_off_filter(
+                pattern[:, 0:1, :, :],
+            )
+        else:
+            gray = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
 
         return gray
 
@@ -166,10 +169,13 @@ class DatasetMNIST(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-        my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        gray: torch.Tensor = my_on_off_filter(
-            pattern[:, 0:1, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
+            gray: torch.Tensor = my_on_off_filter(
+                pattern[:, 0:1, :, :],
+            )
+        else:
+            gray = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
 
         return gray
 
@@ -225,10 +231,13 @@ class DatasetFashionMNIST(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-        my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        gray: torch.Tensor = my_on_off_filter(
-            pattern[:, 0:1, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
+            gray: torch.Tensor = my_on_off_filter(
+                pattern[:, 0:1, :, :],
+            )
+        else:
+            gray = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
 
         return gray
 
@@ -263,10 +272,13 @@ class DatasetFashionMNIST(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-        my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        gray: torch.Tensor = my_on_off_filter(
-            pattern[:, 0:1, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
+            gray: torch.Tensor = my_on_off_filter(
+                pattern[:, 0:1, :, :],
+            )
+        else:
+            gray = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
 
         return gray
 
@@ -321,19 +333,29 @@ class DatasetCIFAR(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-
-        my_on_off_filter_r: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        my_on_off_filter_g: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[1])
-        my_on_off_filter_b: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[2])
-        r: torch.Tensor = my_on_off_filter_r(
-            pattern[:, 0:1, :, :],
-        )
-        g: torch.Tensor = my_on_off_filter_g(
-            pattern[:, 1:2, :, :],
-        )
-        b: torch.Tensor = my_on_off_filter_b(
-            pattern[:, 2:3, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter_r: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[0]
+            )
+            my_on_off_filter_g: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[1]
+            )
+            my_on_off_filter_b: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[2]
+            )
+            r: torch.Tensor = my_on_off_filter_r(
+                pattern[:, 0:1, :, :],
+            )
+            g: torch.Tensor = my_on_off_filter_g(
+                pattern[:, 1:2, :, :],
+            )
+            b: torch.Tensor = my_on_off_filter_b(
+                pattern[:, 2:3, :, :],
+            )
+        else:
+            r = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
+            g = pattern[:, 1:2, :, :] + torch.finfo(torch.float32).eps
+            b = pattern[:, 2:3, :, :] + torch.finfo(torch.float32).eps
 
         new_tensor: torch.Tensor = torch.cat((r, g, b), dim=1)
         return new_tensor
@@ -370,18 +392,29 @@ class DatasetCIFAR(DatasetMaster):
         pattern = scripted_transforms(pattern)
 
         # => On/Off
-        my_on_off_filter_r: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[0])
-        my_on_off_filter_g: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[1])
-        my_on_off_filter_b: OnOffFilter = OnOffFilter(p=cfg.image_statistics.mean[2])
-        r: torch.Tensor = my_on_off_filter_r(
-            pattern[:, 0:1, :, :],
-        )
-        g: torch.Tensor = my_on_off_filter_g(
-            pattern[:, 1:2, :, :],
-        )
-        b: torch.Tensor = my_on_off_filter_b(
-            pattern[:, 2:3, :, :],
-        )
+        if cfg.augmentation.use_on_off_filter is True:
+            my_on_off_filter_r: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[0]
+            )
+            my_on_off_filter_g: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[1]
+            )
+            my_on_off_filter_b: OnOffFilter = OnOffFilter(
+                p=cfg.image_statistics.mean[2]
+            )
+            r: torch.Tensor = my_on_off_filter_r(
+                pattern[:, 0:1, :, :],
+            )
+            g: torch.Tensor = my_on_off_filter_g(
+                pattern[:, 1:2, :, :],
+            )
+            b: torch.Tensor = my_on_off_filter_b(
+                pattern[:, 2:3, :, :],
+            )
+        else:
+            r = pattern[:, 0:1, :, :] + torch.finfo(torch.float32).eps
+            g = pattern[:, 1:2, :, :] + torch.finfo(torch.float32).eps
+            b = pattern[:, 2:3, :, :] + torch.finfo(torch.float32).eps
 
         new_tensor: torch.Tensor = torch.cat((r, g, b), dim=1)
         return new_tensor
