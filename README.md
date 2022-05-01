@@ -168,6 +168,8 @@ def norm_weights(self) -> None:
 ```
 data_mode: str = field(default="")  
 ```
+
+```
 data_path: str = field(default="./")  
 ```
 
