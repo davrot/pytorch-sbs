@@ -117,7 +117,8 @@ elif cfg.data_mode == "MNIST_FASHION":
 else:
     raise Exception("data_mode unknown")
 
-cfg.image_statistics.mean = the_dataset_train.mean
+if len(cfg.image_statistics.mean) == 0:
+    cfg.image_statistics.mean = the_dataset_train.mean
 
 # The basic size
 cfg.image_statistics.the_size = [
@@ -508,7 +509,7 @@ with torch.no_grad():
                         lr_scheduler_eps.step(my_loss_for_batch)
 
                     tb.add_scalar(
-                        "Train Performance", 100.0 - performance, cfg.learning_step
+                        "Train Error", 100.0 - performance, cfg.learning_step
                     )
                     tb.add_scalar("Train Loss", my_loss_for_batch, cfg.learning_step)
                     tb.add_scalar(
