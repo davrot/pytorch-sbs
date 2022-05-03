@@ -52,12 +52,13 @@ bool HDynamicCNNManyIP::update(
     int64_t np_h_pointer_addr, int64_t np_h_dim_0, int64_t np_h_dim_1,
     int64_t np_h_dim_2, int64_t np_h_dim_3, int64_t np_epsilon_xy_pointer_addr,
     int64_t np_epsilon_xy_dim_0, int64_t np_epsilon_xy_dim_1,
-    int64_t np_epsilon_t_pointer_addr, int64_t np_epsilon_t_dim_0,
-    int64_t np_weights_pointer_addr, int64_t np_weights_dim_0,
-    int64_t np_weights_dim_1, int64_t np_input_pointer_addr,
-    int64_t np_input_dim_0, int64_t np_input_dim_1, int64_t np_input_dim_2,
-    int64_t np_input_dim_3, float *np_init_vector_pointer_ptr,
-    int64_t np_init_vector_dim_0, int64_t id_pattern) {
+    int64_t np_epsilon_xy_dim_2, int64_t np_epsilon_t_pointer_addr,
+    int64_t np_epsilon_t_dim_0, int64_t np_weights_pointer_addr,
+    int64_t np_weights_dim_0, int64_t np_weights_dim_1,
+    int64_t np_input_pointer_addr, int64_t np_input_dim_0,
+    int64_t np_input_dim_1, int64_t np_input_dim_2, int64_t np_input_dim_3,
+    float *np_init_vector_pointer_ptr, int64_t np_init_vector_dim_0,
+    int64_t id_pattern) {
   float *np_h_pointer = (float *)np_h_pointer_addr;
   float *np_epsilon_xy_pointer = (float *)np_epsilon_xy_pointer_addr;
   float *np_epsilon_t_pointer = (float *)np_epsilon_t_pointer_addr;
@@ -87,7 +88,8 @@ bool HDynamicCNNManyIP::update(
   assert((np_epsilon_xy_dim_0 > 0));
   assert((np_epsilon_xy_dim_1 > 0));
 
-  int64_t np_epsilon_xy_dim_c0 = np_epsilon_xy_dim_1;
+  int64_t np_epsilon_xy_dim_c0 = np_epsilon_xy_dim_2 * np_epsilon_xy_dim_1;
+  int64_t np_epsilon_xy_dim_c1 = np_epsilon_xy_dim_2;
 
   float *np_epsilon_xy_pointer_0;
   float *np_epsilon_xy_pointer_01;
@@ -170,7 +172,7 @@ bool HDynamicCNNManyIP::update(
 
   for (id_0 = 0; id_0 < np_input_dim_2; id_0++) {
     np_epsilon_xy_pointer_0 =
-        np_epsilon_xy_pointer + id_0 * np_epsilon_xy_dim_c0;
+        np_epsilon_xy_pointer + id_0 * np_epsilon_xy_dim_c1;
 
     np_h_pointer_pattern_0 = np_h_pointer_pattern + id_0 * np_h_dim_c2;
 
@@ -200,11 +202,13 @@ bool HDynamicCNNManyIP::update(
           epsilon_scale = 1.0;
         }
 
-        epsilon_subsegment =
-            np_epsilon_xy_pointer_01[0] * np_epsilon_t_pointer[id_spike];
-
         np_input_pointer_pattern_01_spike =
             np_input_pointer_pattern_01 + id_spike * np_input_dim_c1;
+
+        epsilon_subsegment =
+            np_epsilon_xy_pointer_01[np_input_pointer_pattern_01_spike[0] *
+                                     np_epsilon_xy_dim_c0] *
+            np_epsilon_t_pointer[id_spike];
 
         w_ptr = np_weights_pointer +
                 np_input_pointer_pattern_01_spike[0] * np_weights_dim_c0;
@@ -261,12 +265,13 @@ bool HDynamicCNNManyIP::update_with_init_vector_multi_pattern(
     int64_t np_h_pointer_addr, int64_t np_h_dim_0, int64_t np_h_dim_1,
     int64_t np_h_dim_2, int64_t np_h_dim_3, int64_t np_epsilon_xy_pointer_addr,
     int64_t np_epsilon_xy_dim_0, int64_t np_epsilon_xy_dim_1,
-    int64_t np_epsilon_t_pointer_addr, int64_t np_epsilon_t_dim_0,
-    int64_t np_weights_pointer_addr, int64_t np_weights_dim_0,
-    int64_t np_weights_dim_1, int64_t np_input_pointer_addr,
-    int64_t np_input_dim_0, int64_t np_input_dim_1, int64_t np_input_dim_2,
-    int64_t np_input_dim_3, int64_t np_init_vector_pointer_addr,
-    int64_t np_init_vector_dim_0, int64_t number_of_processes) {
+    int64_t np_epsilon_xy_dim_2, int64_t np_epsilon_t_pointer_addr,
+    int64_t np_epsilon_t_dim_0, int64_t np_weights_pointer_addr,
+    int64_t np_weights_dim_0, int64_t np_weights_dim_1,
+    int64_t np_input_pointer_addr, int64_t np_input_dim_0,
+    int64_t np_input_dim_1, int64_t np_input_dim_2, int64_t np_input_dim_3,
+    int64_t np_init_vector_pointer_addr, int64_t np_init_vector_dim_0,
+    int64_t number_of_processes) {
   int64_t number_of_pattern = np_input_dim_0;
   int64_t pattern_id;
 
@@ -279,7 +284,7 @@ bool HDynamicCNNManyIP::update_with_init_vector_multi_pattern(
   for (pattern_id = 0; pattern_id < number_of_pattern; pattern_id++) {
     update(np_h_pointer_addr, np_h_dim_0, np_h_dim_1, np_h_dim_2, np_h_dim_3,
            np_epsilon_xy_pointer_addr, np_epsilon_xy_dim_0, np_epsilon_xy_dim_1,
-           np_epsilon_t_pointer_addr, np_epsilon_t_dim_0,
+           np_epsilon_xy_dim_2, np_epsilon_t_pointer_addr, np_epsilon_t_dim_0,
            np_weights_pointer_addr, np_weights_dim_0, np_weights_dim_1,
            np_input_pointer_addr, np_input_dim_0, np_input_dim_1,
            np_input_dim_2, np_input_dim_3, h_init_ptr, h_dim, pattern_id);

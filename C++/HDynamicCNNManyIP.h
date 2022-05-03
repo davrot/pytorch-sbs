@@ -45,25 +45,26 @@ class HDynamicCNNManyIP {
   bool update(int64_t np_h_pointer_addr, int64_t np_h_dim_0, int64_t np_h_dim_1,
               int64_t np_h_dim_2, int64_t np_h_dim_3,
               int64_t np_epsilon_xy_pointer_addr, int64_t np_epsilon_xy_dim_0,
-              int64_t np_epsilon_xy_dim_1, int64_t np_epsilon_t_pointer_addr,
-              int64_t np_epsilon_t_dim_0, int64_t np_weights_pointer_addr,
-              int64_t np_weights_dim_0, int64_t np_weights_dim_1,
-              int64_t np_input_pointer_addr, int64_t np_input_dim_0,
-              int64_t np_input_dim_1, int64_t np_input_dim_2,
-              int64_t np_input_dim_3, float *np_init_vector_pointer_ptr,
-              int64_t np_init_vector_dim_0, int64_t id_pattern);
+              int64_t np_epsilon_xy_dim_1, int64_t np_epsilon_xy_dim_2,
+              int64_t np_epsilon_t_pointer_addr, int64_t np_epsilon_t_dim_0,
+              int64_t np_weights_pointer_addr, int64_t np_weights_dim_0,
+              int64_t np_weights_dim_1, int64_t np_input_pointer_addr,
+              int64_t np_input_dim_0, int64_t np_input_dim_1,
+              int64_t np_input_dim_2, int64_t np_input_dim_3,
+              float *np_init_vector_pointer_ptr, int64_t np_init_vector_dim_0,
+              int64_t id_pattern);
 
   bool update_with_init_vector_multi_pattern(
       int64_t np_h_pointer_addr, int64_t np_h_dim_0, int64_t np_h_dim_1,
       int64_t np_h_dim_2, int64_t np_h_dim_3,
       int64_t np_epsilon_xy_pointer_addr, int64_t np_epsilon_xy_dim_0,
-      int64_t np_epsilon_xy_dim_1, int64_t np_epsilon_t_pointer_addr,
-      int64_t np_epsilon_t_dim_0, int64_t np_weights_pointer_addr,
-      int64_t np_weights_dim_0, int64_t np_weights_dim_1,
-      int64_t np_input_pointer_addr, int64_t np_input_dim_0,
-      int64_t np_input_dim_1, int64_t np_input_dim_2, int64_t np_input_dim_3,
-      int64_t np_init_vector_pointer_addr, int64_t np_init_vector_dim_0,
-      int64_t number_of_processes);
+      int64_t np_epsilon_xy_dim_1, int64_t np_epsilon_xy_dim_2,
+      int64_t np_epsilon_t_pointer_addr, int64_t np_epsilon_t_dim_0,
+      int64_t np_weights_pointer_addr, int64_t np_weights_dim_0,
+      int64_t np_weights_dim_1, int64_t np_input_pointer_addr,
+      int64_t np_input_dim_0, int64_t np_input_dim_1, int64_t np_input_dim_2,
+      int64_t np_input_dim_3, int64_t np_init_vector_pointer_addr,
+      int64_t np_init_vector_dim_0, int64_t number_of_processes);
 
  private:
 };
