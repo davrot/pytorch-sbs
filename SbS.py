@@ -122,7 +122,7 @@ class SbS(torch.nn.Module):
 
         self.initialize_epsilon_xy(epsilon_xy_intitial)
 
-        self.epsilon_0 = torch.tensor(epsilon_0, dtype=torch.float64)
+        self.epsilon_0 = torch.tensor(epsilon_0, dtype=torch.float32)
 
         self.number_of_cpu_processes = torch.tensor(
             number_of_cpu_processes, dtype=torch.int64
@@ -130,7 +130,7 @@ class SbS(torch.nn.Module):
 
         self.number_of_spikes = torch.tensor(number_of_spikes, dtype=torch.int64)
 
-        self.epsilon_t = epsilon_t.type(dtype=torch.float64)
+        self.epsilon_t = epsilon_t.type(dtype=torch.float32)
 
         self.initialize_weights(
             is_pooling_layer=is_pooling_layer,
@@ -155,7 +155,7 @@ class SbS(torch.nn.Module):
         assert value is not None
         assert torch.is_tensor(value) is True
         assert value.dim() == 4
-        assert value.dtype == torch.float64
+        assert value.dtype == torch.float32
         if self._epsilon_xy_exists is False:
             self._epsilon_xy = torch.nn.parameter.Parameter(
                 value.detach().clone(memory_format=torch.contiguous_format),
@@ -176,7 +176,7 @@ class SbS(torch.nn.Module):
         assert value is not None
         assert torch.is_tensor(value) is True
         assert torch.numel(value) == 1
-        assert value.dtype == torch.float64
+        assert value.dtype == torch.float32
         assert value.item() > 0
         self._epsilon_0 = value.detach().clone(memory_format=torch.contiguous_format)
         self._epsilon_0.requires_grad_(False)
@@ -190,7 +190,7 @@ class SbS(torch.nn.Module):
         assert value is not None
         assert torch.is_tensor(value) is True
         assert value.dim() == 1
-        assert value.dtype == torch.float64
+        assert value.dtype == torch.float32
         self._epsilon_t = value.detach().clone(memory_format=torch.contiguous_format)
         self._epsilon_t.requires_grad_(False)
 
@@ -206,9 +206,9 @@ class SbS(torch.nn.Module):
         assert value is not None
         assert torch.is_tensor(value) is True
         assert value.dim() == 2
-        assert value.dtype == torch.float64
+        assert value.dtype == torch.float32
         temp: torch.Tensor = value.detach().clone(memory_format=torch.contiguous_format)
-        temp /= temp.sum(dim=0, keepdim=True, dtype=torch.float64)
+        temp /= temp.sum(dim=0, keepdim=True, dtype=torch.float32)
         if self._weights_exists is False:
             self._weights = torch.nn.parameter.Parameter(
                 temp,
@@ -402,7 +402,7 @@ class SbS(torch.nn.Module):
         assert input is not None
         assert torch.is_tensor(input) is True
         assert input.dim() == 4
-        assert input.dtype == torch.float64
+        assert input.dtype == torch.float32
 
         # Are we happy with the rest of the network?
         assert self._epsilon_xy_exists is True
@@ -499,7 +499,7 @@ class SbS(torch.nn.Module):
                 torch.unsqueeze(
                     torch.unsqueeze(
                         torch.unsqueeze(
-                            torch.arange(0, int(value[0]), dtype=torch.float64),
+                            torch.arange(0, int(value[0]), dtype=torch.float32),
                             1,
                         ),
                         0,
@@ -516,7 +516,7 @@ class SbS(torch.nn.Module):
                 torch.unsqueeze(
                     torch.unsqueeze(
                         torch.unsqueeze(
-                            torch.arange(0, int(value[1]), dtype=torch.float64),
+                            torch.arange(0, int(value[1]), dtype=torch.float32),
                             0,
                         ),
                         0,
@@ -537,7 +537,7 @@ class SbS(torch.nn.Module):
 
         assert torch.numel(noise_amplitude) == 1
         assert noise_amplitude.item() >= 0
-        assert noise_amplitude.dtype == torch.float64
+        assert noise_amplitude.dtype == torch.float32
 
         assert self._number_of_neurons is not None
         assert self._number_of_input_neurons is not None
@@ -550,7 +550,7 @@ class SbS(torch.nn.Module):
                 int(self._number_of_input_neurons),
                 int(self._number_of_neurons),
             ),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         torch.nn.init.uniform_(weights, a=1.0, b=(1.0 + noise_amplitude.item()))
 
@@ -571,7 +571,7 @@ class SbS(torch.nn.Module):
                 int(self._number_of_neurons),
                 int(self._number_of_neurons),
             ),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
 
         for i in range(0, int(self._number_of_neurons)):
@@ -593,7 +593,7 @@ class SbS(torch.nn.Module):
             weights = self._make_pooling_weights()
         else:
             weights = self._initial_random_weights(
-                torch.tensor(noise_amplitude, dtype=torch.float64)
+                torch.tensor(noise_amplitude, dtype=torch.float32)
             )
 
         weights = weights.moveaxis(-1, 0).moveaxis(-1, 1)
@@ -628,7 +628,7 @@ class SbS(torch.nn.Module):
                 int(self._kernel_size[1]),
             ),
             eps_xy_intitial,
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
 
         self.epsilon_xy = eps_xy_temp
@@ -660,7 +660,7 @@ class SbS(torch.nn.Module):
 
         fill_value: float = float(self._epsilon_xy.data.mean())
         self._epsilon_xy.data = torch.full_like(
-            self._epsilon_xy.data, fill_value, dtype=torch.float64
+            self._epsilon_xy.data, fill_value, dtype=torch.float32
         )
 
     def threshold_epsilon_xy(self, threshold: float) -> None:
@@ -688,9 +688,9 @@ class SbS(torch.nn.Module):
         temp: torch.Tensor = (
             self._weights.data.detach()
             .clone(memory_format=torch.contiguous_format)
-            .type(dtype=torch.float64)
+            .type(dtype=torch.float32)
         )
-        temp /= temp.sum(dim=0, keepdim=True, dtype=torch.float64)
+        temp /= temp.sum(dim=0, keepdim=True, dtype=torch.float32)
         self._weights.data = temp
 
     def threshold_weights(self, threshold: float) -> None:
@@ -708,11 +708,11 @@ class FunctionalSbS(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore
         ctx,
-        input_float64: torch.Tensor,
-        epsilon_xy_float64: torch.Tensor,
-        epsilon_0_float64: torch.Tensor,
-        epsilon_t_float64: torch.Tensor,
-        weights_float64: torch.Tensor,
+        input: torch.Tensor,
+        epsilon_xy: torch.Tensor,
+        epsilon_0: torch.Tensor,
+        epsilon_t: torch.Tensor,
+        weights: torch.Tensor,
         kernel_size: torch.Tensor,
         stride: torch.Tensor,
         dilation: torch.Tensor,
@@ -724,11 +724,7 @@ class FunctionalSbS(torch.autograd.Function):
         alpha_number_of_iterations: torch.Tensor,
     ) -> torch.Tensor:
 
-        input = input_float64.type(dtype=torch.float32)
-        epsilon_xy = epsilon_xy_float64.type(dtype=torch.float32)
-        weights = weights_float64.type(dtype=torch.float32)
-        epsilon_0 = epsilon_0_float64.type(dtype=torch.float32)
-        epsilon_t = epsilon_t_float64.type(dtype=torch.float32)
+        torch.set_default_dtype(torch.float32)
 
         assert input.dim() == 4
         assert torch.numel(kernel_size) == 2
@@ -1097,7 +1093,7 @@ class FunctionalSbS(torch.autograd.Function):
                 )
                 alpha_dynamic = alpha_temp.sum(dim=1, keepdim=True)
 
-                alpha_dynamic += torch.finfo(torch.float32).eps * 1000
+                alpha_dynamic += 1e-20
 
                 # Alpha normalization
                 alpha_dynamic /= alpha_dynamic.sum(dim=3, keepdim=True).sum(
@@ -1114,13 +1110,11 @@ class FunctionalSbS(torch.autograd.Function):
         # Save the necessary data for the backward pass            #
         ############################################################
 
-        output = output.type(dtype=torch.float64)
-
         ctx.save_for_backward(
             input_convolved,
             epsilon_xy_convolved,
-            epsilon_0_float64,
-            weights_float64,
+            epsilon_0,
+            weights,
             output,
             kernel_size,
             stride,
@@ -1136,8 +1130,8 @@ class FunctionalSbS(torch.autograd.Function):
 
         # Get the variables back
         (
-            input_float32,
-            epsilon_xy_float32,
+            input,
+            epsilon_xy,
             epsilon_0,
             weights,
             output,
@@ -1148,14 +1142,14 @@ class FunctionalSbS(torch.autograd.Function):
             input_size,
         ) = ctx.saved_tensors
 
-        input = input_float32.type(dtype=torch.float64)
-        input /= input.sum(dim=1, keepdim=True, dtype=torch.float64)
-        epsilon_xy = epsilon_xy_float32.type(dtype=torch.float64)
+        torch.set_default_dtype(torch.float32)
+
+        input /= input.sum(dim=1, keepdim=True, dtype=torch.float32)
 
         # For debugging:
-        # print(
-        #     f"S: O: {output.min().item():e} {output.max().item():e} I: {input.min().item():e} {input.max().item():e} G: {grad_output.min().item():e} {grad_output.max().item():e}"
-        # )
+#        print(
+#            f"S: O: {output.min().item():e} {output.max().item():e} I: {input.min().item():e} {input.max().item():e} G: {grad_output.min().item():e} {grad_output.max().item():e}"
+#        )
 
         epsilon_0_float: float = epsilon_0.item()
 
@@ -1172,21 +1166,21 @@ class FunctionalSbS(torch.autograd.Function):
 
         backprop_bigr: torch.Tensor = backprop_r.sum(axis=2)
 
-        temp: torch.Tensor = input / backprop_bigr**2
+        temp: torch.Tensor = input / (backprop_bigr**2 + 1e-20)
 
         backprop_f: torch.Tensor = output.unsqueeze(1) * temp.unsqueeze(2)
         torch.nan_to_num(
-            backprop_f, out=backprop_f, nan=1e300, posinf=1e300, neginf=-1e300
+            backprop_f, out=backprop_f, nan=1e30, posinf=1e30, neginf=-1e30
         )
-        torch.clip(backprop_f, out=backprop_f, min=-1e300, max=1e300)
+        torch.clip(backprop_f, out=backprop_f, min=-1e30, max=1e30)
 
-        tempz: torch.Tensor = 1.0 / backprop_bigr
+        tempz: torch.Tensor = 1.0 / (backprop_bigr + 1e-20)
 
         backprop_z: torch.Tensor = backprop_r * tempz.unsqueeze(2)
         torch.nan_to_num(
-            backprop_z, out=backprop_z, nan=1e300, posinf=1e300, neginf=-1e300
+            backprop_z, out=backprop_z, nan=1e30, posinf=1e30, neginf=-1e30
         )
-        torch.clip(backprop_z, out=backprop_z, min=-1e300, max=1e300)
+        torch.clip(backprop_z, out=backprop_z, min=-1e30, max=1e30)
 
         result_omega: torch.Tensor = backprop_bigr.unsqueeze(2) * grad_output.unsqueeze(
             1
@@ -1211,9 +1205,9 @@ class FunctionalSbS(torch.autograd.Function):
 
         grad_weights = result_omega.sum(0).sum(-1).sum(-1)
         torch.nan_to_num(
-            grad_weights, out=grad_weights, nan=1e300, posinf=1e300, neginf=-1e300
+            grad_weights, out=grad_weights, nan=1e30, posinf=1e30, neginf=-1e30
         )
-        torch.clip(grad_weights, out=grad_weights, min=-1e300, max=1e300)
+        torch.clip(grad_weights, out=grad_weights, min=-1e30, max=1e30)
 
         grad_input = torch.nn.functional.fold(
             torch.nn.functional.unfold(
@@ -1230,9 +1224,9 @@ class FunctionalSbS(torch.autograd.Function):
             stride=stride,
         )
         torch.nan_to_num(
-            grad_input, out=grad_input, nan=1e300, posinf=1e300, neginf=-1e300
+            grad_input, out=grad_input, nan=1e30, posinf=1e30, neginf=-1e30
         )
-        torch.clip(grad_input, out=grad_input, min=-1e300, max=1e300)
+        torch.clip(grad_input, out=grad_input, min=-1e30, max=1e30)
 
         grad_eps_xy_temp = torch.nn.functional.fold(
             result_eps_xy.moveaxis(0, -1)
@@ -1260,9 +1254,9 @@ class FunctionalSbS(torch.autograd.Function):
             .contiguous(memory_format=torch.contiguous_format)
         )
         torch.nan_to_num(
-            grad_eps_xy, out=grad_eps_xy, nan=1e300, posinf=1e300, neginf=-1e300
+            grad_eps_xy, out=grad_eps_xy, nan=1e30, posinf=1e30, neginf=-1e30
         )
-        torch.clip(grad_eps_xy, out=grad_eps_xy, min=-1e300, max=1e300)
+        torch.clip(grad_eps_xy, out=grad_eps_xy, min=-1e30, max=1e30)
 
         grad_epsilon_0 = None
         grad_epsilon_t = None

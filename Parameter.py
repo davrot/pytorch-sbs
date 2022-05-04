@@ -71,6 +71,7 @@ class LearningParameters:
     learning_rate_threshold_eps_xy: float = field(default=0.00001)
 
     lr_schedule_name: str = field(default="ReduceLROnPlateau")
+    lr_scheduler_use_performance: bool = field(default=True)
     lr_scheduler_factor_w: float = field(default=0.75)
     lr_scheduler_patience_w: int = field(default=-1)
 
@@ -133,11 +134,12 @@ class Config:
     number_of_cpu_processes: int = field(default=-1)
 
     number_of_spikes: int = field(default=0)
-    cooldown_after_number_of_spikes: int = field(default=0)
+    cooldown_after_number_of_spikes: int = field(default=-1)
 
     weight_path: str = field(default="./Weights/")
     eps_xy_path: str = field(default="./EpsXY/")
     data_path: str = field(default="./")
+    results_path: str = field(default="./Results")
 
     reduction_cooldown: float = field(default=25.0)
     epsilon_0: float = field(default=1.0)
@@ -159,6 +161,7 @@ class Config:
         os.makedirs(self.weight_path, exist_ok=True)
         os.makedirs(self.eps_xy_path, exist_ok=True)
         os.makedirs(self.data_path, exist_ok=True)
+        os.makedirs(self.results_path, exist_ok=True)
 
         self.batch_size = (
             self.batch_size // self.number_of_cpu_processes
@@ -170,9 +173,12 @@ class Config:
     def get_epsilon_t(self):
         """Generates the time series of the basic epsilon."""
         np_epsilon_t: np.ndarray = np.ones((self.number_of_spikes), dtype=np.float32)
-        np_epsilon_t[
-            self.cooldown_after_number_of_spikes : self.number_of_spikes
-        ] /= self.reduction_cooldown
+        if (self.cooldown_after_number_of_spikes < self.number_of_spikes) and (
+            self.cooldown_after_number_of_spikes >= 0
+        ):
+            np_epsilon_t[
+                self.cooldown_after_number_of_spikes : self.number_of_spikes
+            ] /= self.reduction_cooldown
         return torch.tensor(np_epsilon_t)
 
     def get_update_after_x_pattern(self):

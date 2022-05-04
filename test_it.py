@@ -182,7 +182,7 @@ for id in range(0, len(network)):
     if len(file_to_load) == 1:
         network[id].weights = torch.tensor(
             np.load(file_to_load[0]),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         wf[id] = np.load(file_to_load[0])
         logging.info(f"File used: {file_to_load[0]}")
@@ -200,7 +200,7 @@ for id in range(0, len(network)):
     if len(file_to_load) == 1:
         network[id].epsilon_xy = torch.tensor(
             np.load(file_to_load[0]),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         eps_xy[id] = np.load(file_to_load[0])
         logging.info(f"File used: {file_to_load[0]}")
@@ -219,7 +219,7 @@ for id in range(0, len(network)):
         if os.path.exists(filename) is True:
             network[id].weights = torch.tensor(
                 np.load(filename),
-                dtype=torch.float64,
+                dtype=torch.float32,
             )
             wf[id] = np.load(filename)
 
@@ -234,7 +234,7 @@ for id in range(0, len(network)):
         if os.path.exists(filename) is True:
             network[id].epsilon_xy = torch.tensor(
                 np.load(filename),
-                dtype=torch.float64,
+                dtype=torch.float32,
             )
             eps_xy[id] = np.load(filename)
 
@@ -256,7 +256,7 @@ with torch.no_grad():
         time_0 = time.perf_counter()
 
         h_h: torch.Tensor = network(
-            the_dataset_test.pattern_filter_test(h_x, cfg).type(dtype=torch.float64)
+            the_dataset_test.pattern_filter_test(h_x, cfg).type(dtype=torch.float32)
         )
 
         test_correct += (h_h.argmax(dim=1).squeeze() == h_x_labels).sum().numpy()
@@ -271,6 +271,8 @@ with torch.no_grad():
                 f" with {performance/100:^6.2%} \t Time used: {time_measure_a:^6.2f}sec"
             )
         )
+        np_performance = np.array(performance)
+        np.save(f"{cfg.results_path}/{cfg.learning_step}.npy", np_performance)
 
 
 # %%

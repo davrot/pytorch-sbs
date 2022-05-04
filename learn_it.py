@@ -56,6 +56,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 tb = SummaryWriter()
 
+torch.set_default_dtype(torch.float32)
+
 #######################################################################
 # We want to log what is going on into a file and screen              #
 #######################################################################
@@ -191,7 +193,7 @@ for id in range(0, len(network)):
         if os.path.exists(filename) is True:
             network[id].weights = torch.tensor(
                 np.load(filename),
-                dtype=torch.float64,
+                dtype=torch.float32,
             )
             wf[id] = np.load(filename)
 
@@ -206,7 +208,7 @@ for id in range(0, len(network)):
         if os.path.exists(filename) is True:
             network[id].epsilon_xy = torch.tensor(
                 np.load(filename),
-                dtype=torch.float64,
+                dtype=torch.float32,
             )
             eps_xy[id] = np.load(filename)
 
@@ -225,7 +227,7 @@ for id in range(0, len(network)):
     if len(file_to_load) == 1:
         network[id].weights = torch.tensor(
             np.load(file_to_load[0]),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         wf[id] = np.load(file_to_load[0])
         logging.info(f"File used: {file_to_load[0]}")
@@ -243,7 +245,7 @@ for id in range(0, len(network)):
     if len(file_to_load) == 1:
         network[id].epsilon_xy = torch.tensor(
             np.load(file_to_load[0]),
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         eps_xy[id] = np.load(file_to_load[0])
         logging.info(f"File used: {file_to_load[0]}")
@@ -346,7 +348,7 @@ with torch.no_grad():
                     h_collection = []
                     h_collection.append(
                         the_dataset_train.pattern_filter_train(h_x, cfg).type(
-                            dtype=torch.float64
+                            dtype=torch.float32
                         )
                     )
                     for id in range(0, len(network)):
@@ -365,21 +367,21 @@ with torch.no_grad():
                     target_one_hot = (
                         target_one_hot.unsqueeze(2)
                         .unsqueeze(2)
-                        .type(dtype=torch.float64)
+                        .type(dtype=torch.float32)
                     )
 
-                    # through the loss functions
-                    h_y1 = torch.log(h_collection[-1])
-                    h_y2 = torch.nan_to_num(h_y1, nan=0.0, posinf=0.0, neginf=0.0)
+                    h_y1 = torch.log(h_collection[-1] + 1e-20)
 
                     my_loss: torch.Tensor = (
                         (
                             torch.nn.functional.mse_loss(
-                                h_collection[-1], target_one_hot, reduction="none"
+                                h_collection[-1],
+                                target_one_hot,
+                                reduction="none",
                             )
                             * cfg.learning_parameters.loss_coeffs_mse
                             + torch.nn.functional.kl_div(
-                                h_y2, target_one_hot, reduction="none"
+                                h_y1, target_one_hot + 1e-20, reduction="none"
                             )
                             * cfg.learning_parameters.loss_coeffs_kldiv
                         )
@@ -392,6 +394,7 @@ with torch.no_grad():
                     time_1: float = time.perf_counter()
 
                     my_loss.backward()
+
                     my_loss_float = my_loss.item()
                     time_2: float = time.perf_counter()
 
@@ -447,7 +450,7 @@ with torch.no_grad():
                             network[id].norm_weights()
                         else:
                             network[id].weights = torch.tensor(
-                                wf[id], dtype=torch.float64
+                                wf[id], dtype=torch.float32
                             )
 
                         if cfg.network_structure.eps_xy_trainable[id] is True:
@@ -458,7 +461,7 @@ with torch.no_grad():
                                 network[id].mean_epsilon_xy()
                         else:
                             network[id].epsilon_xy = torch.tensor(
-                                eps_xy[id], dtype=torch.float64
+                                eps_xy[id], dtype=torch.float32
                             )
 
                         if cfg.network_structure.w_trainable[id] is True:
@@ -504,13 +507,18 @@ with torch.no_grad():
                     # Let the torch learning rate scheduler update the
                     # learning rates of the optimiers
                     if cfg.learning_parameters.lr_scheduler_patience_w > 0:
-                        lr_scheduler_wf.step(my_loss_for_batch)
-                    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
-                        lr_scheduler_eps.step(my_loss_for_batch)
+                        if cfg.learning_parameters.lr_scheduler_use_performance is True:
+                            lr_scheduler_wf.step(100.0 - performance)
+                        else:
+                            lr_scheduler_wf.step(my_loss_for_batch)
 
-                    tb.add_scalar(
-                        "Train Error", 100.0 - performance, cfg.learning_step
-                    )
+                    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
+                        if cfg.learning_parameters.lr_scheduler_use_performance is True:
+                            lr_scheduler_eps.step(100.0 - performance)
+                        else:
+                            lr_scheduler_eps.step(my_loss_for_batch)
+
+                    tb.add_scalar("Train Error", 100.0 - performance, cfg.learning_step)
                     tb.add_scalar("Train Loss", my_loss_for_batch, cfg.learning_step)
                     tb.add_scalar(
                         "Learning Rate Scale WF",
@@ -568,7 +576,7 @@ with torch.no_grad():
 
                             h_h: torch.Tensor = network(
                                 the_dataset_test.pattern_filter_test(h_x, cfg).type(
-                                    dtype=torch.float64
+                                    dtype=torch.float32
                                 )
                             )
 
