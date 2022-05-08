@@ -1147,9 +1147,9 @@ class FunctionalSbS(torch.autograd.Function):
         input /= input.sum(dim=1, keepdim=True, dtype=torch.float32)
 
         # For debugging:
-#        print(
-#            f"S: O: {output.min().item():e} {output.max().item():e} I: {input.min().item():e} {input.max().item():e} G: {grad_output.min().item():e} {grad_output.max().item():e}"
-#        )
+        # print(
+        #     f"S: O: {output.min().item():e} {output.max().item():e} I: {input.min().item():e} {input.max().item():e} G: {grad_output.min().item():e} {grad_output.max().item():e}"
+        # )
 
         epsilon_0_float: float = epsilon_0.item()
 

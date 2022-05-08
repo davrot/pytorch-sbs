@@ -54,6 +54,14 @@ from SbS import SbS
 
 from torch.utils.tensorboard import SummaryWriter
 
+try:
+    from SbSLRScheduler import SbSLRScheduler
+
+    sbs_lr_scheduler: bool = True
+except Exception:
+    sbs_lr_scheduler = False
+
+
 tb = SummaryWriter()
 
 torch.set_default_dtype(torch.float32)
@@ -264,6 +272,7 @@ for id in range(0, len(network)):
     parameter_list_epsilon_xy.append(network[id]._epsilon_xy)
 
 if cfg.learning_parameters.optimizer_name == "Adam":
+    logging.info("Using optimizer: Adam")
     if cfg.learning_parameters.learning_rate_gamma_w > 0:
         optimizer_wf: torch.optim.Optimizer = torch.optim.Adam(
             parameter_list_weights,
@@ -286,20 +295,56 @@ if cfg.learning_parameters.optimizer_name == "Adam":
 else:
     raise Exception("Optimizer not implemented")
 
-if cfg.learning_parameters.lr_schedule_name == "ReduceLROnPlateau":
-    if cfg.learning_parameters.lr_scheduler_patience_w > 0:
-        lr_scheduler_wf = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer_wf,
-            factor=cfg.learning_parameters.lr_scheduler_factor_w,
-            patience=cfg.learning_parameters.lr_scheduler_patience_w,
-        )
+do_lr_scheduler_step: bool = True
 
-    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
-        lr_scheduler_eps = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer_eps,
-            factor=cfg.learning_parameters.lr_scheduler_factor_eps_xy,
-            patience=cfg.learning_parameters.lr_scheduler_patience_eps_xy,
-        )
+if cfg.learning_parameters.lr_schedule_name == "None":
+    logging.info("Using lr scheduler: None")
+    do_lr_scheduler_step = False
+
+elif cfg.learning_parameters.lr_schedule_name == "ReduceLROnPlateau":
+    logging.info("Using lr scheduler: ReduceLROnPlateau")
+
+    assert cfg.learning_parameters.lr_scheduler_factor_w > 0
+    assert cfg.learning_parameters.lr_scheduler_factor_eps_xy > 0
+    assert cfg.learning_parameters.lr_scheduler_patience_w > 0
+    assert cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0
+
+    lr_scheduler_wf = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_wf,
+        factor=cfg.learning_parameters.lr_scheduler_factor_w,
+        patience=cfg.learning_parameters.lr_scheduler_patience_w,
+    )
+
+    lr_scheduler_eps = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_eps,
+        factor=cfg.learning_parameters.lr_scheduler_factor_eps_xy,
+        patience=cfg.learning_parameters.lr_scheduler_patience_eps_xy,
+    )
+
+elif cfg.learning_parameters.lr_schedule_name == "SbSLRScheduler":
+    logging.info("Using lr scheduler: SbSLRScheduler")
+
+    assert cfg.learning_parameters.lr_scheduler_factor_w > 0
+    assert cfg.learning_parameters.lr_scheduler_factor_eps_xy > 0
+    assert cfg.learning_parameters.lr_scheduler_patience_w > 0
+    assert cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0
+
+    if sbs_lr_scheduler is False:
+        raise Exception("lr_scheduler: SbSLRScheduler.py missing")
+
+    lr_scheduler_wf = SbSLRScheduler(
+        optimizer_wf,
+        factor=cfg.learning_parameters.lr_scheduler_factor_w,
+        patience=cfg.learning_parameters.lr_scheduler_patience_w,
+        tau=cfg.learning_parameters.lr_scheduler_tau_w,
+    )
+
+    lr_scheduler_eps = SbSLRScheduler(
+        optimizer_eps,
+        factor=cfg.learning_parameters.lr_scheduler_factor_eps_xy,
+        patience=cfg.learning_parameters.lr_scheduler_patience_eps_xy,
+        tau=cfg.learning_parameters.lr_scheduler_tau_eps_xy,
+    )
 else:
     raise Exception("lr_scheduler not implemented")
 
@@ -433,7 +478,6 @@ with torch.no_grad():
                     train_number_of_processed_pattern
                     >= cfg.get_update_after_x_pattern()
                 ):
-                    logging.info("\t\t\t*** Updating the weights ***")
                     my_loss_for_batch: float = (
                         train_loss[0] / train_number_of_processed_pattern
                     )
@@ -506,13 +550,13 @@ with torch.no_grad():
 
                     # Let the torch learning rate scheduler update the
                     # learning rates of the optimiers
-                    if cfg.learning_parameters.lr_scheduler_patience_w > 0:
+                    if do_lr_scheduler_step is True:
                         if cfg.learning_parameters.lr_scheduler_use_performance is True:
                             lr_scheduler_wf.step(100.0 - performance)
                         else:
                             lr_scheduler_wf.step(my_loss_for_batch)
 
-                    if cfg.learning_parameters.lr_scheduler_patience_eps_xy > 0:
+                    if do_lr_scheduler_step is True:
                         if cfg.learning_parameters.lr_scheduler_use_performance is True:
                             lr_scheduler_eps.step(100.0 - performance)
                         else:
@@ -530,6 +574,10 @@ with torch.no_grad():
                         optimizer_eps.param_groups[-1]["lr"],
                         cfg.learning_step,
                     )
+                    logging.info(
+                        f"\t\t\tLearning rate: weights:{optimizer_wf.param_groups[-1]['lr']:^15.3e} \t epsilon xy:{optimizer_eps.param_groups[-1]['lr']:^15.3e}"
+                    )
+                    logging.info("\t\t\t*** Updating the weights ***")
 
                     cfg.learning_step += 1
                     train_loss = np.zeros((1), dtype=np.float32)

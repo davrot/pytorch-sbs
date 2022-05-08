@@ -74,9 +74,11 @@ class LearningParameters:
     lr_scheduler_use_performance: bool = field(default=True)
     lr_scheduler_factor_w: float = field(default=0.75)
     lr_scheduler_patience_w: int = field(default=-1)
+    lr_scheduler_tau_w: int = field(default=10)
 
     lr_scheduler_factor_eps_xy: float = field(default=0.75)
     lr_scheduler_patience_eps_xy: int = field(default=-1)
+    lr_scheduler_tau_eps_xy: int = field(default=10)
 
     number_of_batches_for_one_update: int = field(default=1)
     overload_path: str = field(default="./Previous")
@@ -144,8 +146,6 @@ class Config:
     reduction_cooldown: float = field(default=25.0)
     epsilon_0: float = field(default=1.0)
 
-    update_after_x_batch: float = field(default=1.0)
-
     def __post_init__(self) -> None:
         """Post init determines the number of cores.
         Creates the required directory and gives us an optimized
@@ -183,4 +183,6 @@ class Config:
 
     def get_update_after_x_pattern(self):
         """Tells us after how many pattern we need to update the weights."""
-        return self.batch_size * self.update_after_x_batch
+        return (
+            self.batch_size * self.learning_parameters.number_of_batches_for_one_update
+        )
