@@ -1,0 +1,4 @@
+{
+    "data_path": "./DATA_CIFAR10/",
+    "data_mode": "CIFAR10"
+}
