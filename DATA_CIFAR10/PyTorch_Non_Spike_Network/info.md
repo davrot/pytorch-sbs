@@ -1,1 +1,0 @@
-Performance reached (test data correct classifications): 76.60%
