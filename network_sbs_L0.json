@@ -1,0 +1,39 @@
+{
+    "network_structure": {
+        "number_of_output_neurons": 10,
+        "layer_type": [
+            "SbS",
+            "SbS"
+        ],
+        "strides": [
+            [
+                1,
+                1
+            ],
+            [
+                1,
+                1
+            ]
+        ],
+        "forward_neuron_numbers": [
+            [
+                1,
+                32
+            ],
+            [
+                32,
+                10
+            ]
+        ],
+        "forward_kernel_size": [
+            [
+                5,
+                5
+            ],
+            [
+                20,
+                20
+            ]
+        ]
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "epoch_id_max": 200,
+    "number_of_spikes": [
+        1600
+    ],
+    "batch_size": 24,
+    "forgetting_offset": 0.0,
+    "stage_id": 0,
+    "simulation_id": 0,
+    "learning_parameters": {
+        "learning_rate_threshold_w": 0.001,
+        "eps_xy_intitial": 1.0,
+        "number_of_batches_for_one_update": 20,
+        "learning_rate_gamma_w": 0.001,
+        "lr_scheduler_patience_w": 50,
+        "adapt_learning_rate_after_minibatch": true,
+        "w_trainable": [
+            true
+        ]
+    },
+    "augmentation": {},
+    "image_statistics": {},
+    "approximation_setting": {}
+}

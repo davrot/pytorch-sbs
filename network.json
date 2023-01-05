@@ -1,0 +1,91 @@
+{
+    "network_structure": {
+        "number_of_output_neurons": 10,
+        "layer_type": [
+            "SbS",
+            "MAX POOLING",
+            "SbS",
+            "MAX POOLING",
+            "SbS",
+            "SbS"
+        ],
+        "strides": [
+            [
+                1,
+                1
+            ], // "SbS"
+            [
+                2,
+                2
+            ], // POOLING
+            [
+                1,
+                1
+            ], // "SbS"
+            [
+                2,
+                2
+            ], // POOLING
+            [
+                1,
+                1
+            ], // "SbS"
+            [
+                1,
+                1
+            ] // "SbS"
+        ],
+        "forward_neuron_numbers": [
+            [
+                1,
+                32
+            ], // "SbS"
+            [
+                32,
+                32
+            ], // POOLING
+            [
+                32,
+                64
+            ], // "SbS"
+            [
+                64,
+                64
+            ], // POOLING
+            [
+                64,
+                96
+            ], // "SbS"
+            [
+                96,
+                10
+            ] // "SbS"
+        ],
+        "forward_kernel_size": [
+            [
+                5,
+                5
+            ], // "SbS"
+            [
+                2,
+                2
+            ], // POOLING
+            [
+                5,
+                5
+            ], // "SbS"
+            [
+                2,
+                2
+            ], // POOLING
+            [
+                3,
+                3
+            ], // "SbS"
+            [
+                1,
+                1
+            ] // "SbS"
+        ]
+    }
+}
