@@ -21,8 +21,8 @@ It was programmed with 3.10.4. And I used some 3.10 Python expression. Thus you 
 # C++
 
 You need to modify the Makefile in the C++ directory to your Python installation.  
+
 In addition your Python installation needs the PyBind11 package installed. You might want to perform a  
 pip install pybind11  
 The Makefile uses clang as a compiler. If you want something else then you need to change the Makefile.
 For CUDA I used version 12.0.
-
