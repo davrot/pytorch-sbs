@@ -60,6 +60,8 @@ class Adam(torch.optim.Optimizer):
         state_steps = []
         sbs_setting = []
 
+        assert len(self.param_groups) == 1
+
         for id, p in enumerate(self.params):
             if p.grad is not None:
                 params_with_grad.append(p)
@@ -95,7 +97,7 @@ class Adam(torch.optim.Optimizer):
             state_steps,
             beta1=self.beta1,
             beta2=self.beta2,
-            lr=self.lr,
+            lr=self.param_groups[0]["lr"],
             eps=self.eps,
             maximize=self.maximize,
         )
@@ -149,6 +151,6 @@ class Adam(torch.optim.Optimizer):
                 else:
                     delta = torch.exp(-step_size * (exp_avg / denom))
                     print(
-                        f"{float(delta.min()) - 1.0:.4e}  {float(delta.max()) - 1.0:.4e}"
+                        f"{float(delta.min()) - 1.0:.4e}  {float(delta.max()) - 1.0:.4e} {lr:.4e}"
                     )
                     param *= delta
