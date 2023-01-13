@@ -4,6 +4,13 @@ from network.CPP.PySpikeGeneration2DManyIP import SpikeGeneration2DManyIP
 from network.CPP.PyHDynamicCNNManyIP import HDynamicCNNManyIP
 from network.calculate_output_size import calculate_output_size
 
+global_sbs_gpu_setting: list[torch.Tensor] = []
+global_sbs_size: list[torch.Tensor] = []
+global_sbs_hdynamic_cpp: list[HDynamicCNNManyIP] = []
+global_spike_generation_gpu_setting: list[torch.Tensor] = []
+global_spike_size: list[torch.Tensor] = []
+global_spike_generation_cpp: list[SpikeGeneration2DManyIP] = []
+
 
 class SbS(torch.nn.Module):
 
@@ -24,9 +31,9 @@ class SbS(torch.nn.Module):
     _epsilon_xy_intitial: float
     _h_initial: torch.Tensor | None = None
     _w_trainable: bool
-    #    _last_grad_scale: torch.nn.parameter.Parameter
-    #    _keep_last_grad_scale: bool
-    #    _disable_scale_grade: bool
+    _last_grad_scale: torch.nn.parameter.Parameter
+    _keep_last_grad_scale: bool
+    _disable_scale_grade: bool
     _forgetting_offset: torch.Tensor | None = None
     _weight_noise_range: list[float]
     _skip_gradient_calculation: bool
@@ -42,6 +49,14 @@ class SbS(torch.nn.Module):
     _max_grad_weights: torch.Tensor | None = None
 
     _number_of_grad_weight_contributions: float = 0.0
+
+    last_input_store: bool = False
+    last_input_data: torch.Tensor | None = None
+
+    sbs_gpu_setting_position: int = -1
+    sbs_hdynamic_cpp_position: int = -1
+    spike_generation_cpp_position: int = -1
+    spike_generation_gpu_setting_position: int = -1
 
     def __init__(
         self,
@@ -60,13 +75,14 @@ class SbS(torch.nn.Module):
         padding: list[int] = [0, 0],
         number_of_cpu_processes: int = 1,
         w_trainable: bool = False,
-        #        keep_last_grad_scale: bool = False,
-        #        disable_scale_grade: bool = True,
+        keep_last_grad_scale: bool = False,
+        disable_scale_grade: bool = True,
         forgetting_offset: float = -1.0,
         skip_gradient_calculation: bool = False,
         device: torch.device | None = None,
         default_dtype: torch.dtype | None = None,
         gpu_tuning_factor: int = 5,
+        layer_id: int = -1,
     ) -> None:
         super().__init__()
 
@@ -76,9 +92,9 @@ class SbS(torch.nn.Module):
         self.default_dtype = default_dtype
 
         self._w_trainable = bool(w_trainable)
-        #        self._keep_last_grad_scale = bool(keep_last_grad_scale)
+        self._keep_last_grad_scale = bool(keep_last_grad_scale)
         self._skip_gradient_calculation = bool(skip_gradient_calculation)
-        #        self._disable_scale_grade = bool(disable_scale_grade)
+        self._disable_scale_grade = bool(disable_scale_grade)
         self._epsilon_xy_intitial = float(epsilon_xy_intitial)
         self._stride = strides
         self._dilation = dilation
@@ -95,6 +111,21 @@ class SbS(torch.nn.Module):
         assert len(input_size) == 2
         self._input_size = input_size
 
+        global_sbs_gpu_setting.append(torch.tensor([0]))
+        global_spike_generation_gpu_setting.append(torch.tensor([0]))
+        global_sbs_size.append(torch.tensor([0, 0, 0, 0]))
+        global_spike_size.append(torch.tensor([0, 0, 0, 0]))
+
+        global_sbs_hdynamic_cpp.append(HDynamicCNNManyIP())
+        global_spike_generation_cpp.append(SpikeGeneration2DManyIP())
+
+        self.sbs_gpu_setting_position = len(global_sbs_gpu_setting) - 1
+        self.sbs_hdynamic_cpp_position = len(global_sbs_hdynamic_cpp) - 1
+        self.spike_generation_cpp_position = len(global_spike_generation_cpp) - 1
+        self.spike_generation_gpu_setting_position = (
+            len(global_spike_generation_gpu_setting) - 1
+        )
+
         # The GPU hates me...
         # Too many SbS threads == bad
         # Thus I need to limit them...
@@ -105,10 +136,10 @@ class SbS(torch.nn.Module):
         else:
             self._gpu_tuning_factor = 0
 
-        # self._last_grad_scale = torch.nn.parameter.Parameter(
-        #     torch.tensor(-1.0, dtype=self.default_dtype),
-        #     requires_grad=True,
-        # )
+        self._last_grad_scale = torch.nn.parameter.Parameter(
+            torch.tensor(-1.0, dtype=self.default_dtype),
+            requires_grad=True,
+        )
 
         self._forgetting_offset = torch.tensor(
             forgetting_offset, dtype=self.default_dtype, device=self.device
@@ -234,12 +265,12 @@ class SbS(torch.nn.Module):
             self.threshold_weights(threshold_weight)
             self.norm_weights()
 
-    # def after_batch(self, new_state: bool = False):
-    #     if self._keep_last_grad_scale is True:
-    #         self._last_grad_scale.data = self._last_grad_scale.grad
-    #         self._keep_last_grad_scale = new_state
+    def after_batch(self, new_state: bool = False):
+        if self._keep_last_grad_scale is True:
+            self._last_grad_scale.data = self._last_grad_scale.grad
+            self._keep_last_grad_scale = new_state
 
-    #     self._last_grad_scale.grad = torch.zeros_like(self._last_grad_scale.grad)
+        self._last_grad_scale.grad = torch.zeros_like(self._last_grad_scale.grad)
 
     ####################################################################
     # Helper functions                                                 #
@@ -339,6 +370,20 @@ class SbS(torch.nn.Module):
         assert self._weights_exists is True
         assert self._weights is not None
 
+        assert self.sbs_gpu_setting_position != -1
+        assert self.sbs_hdynamic_cpp_position != -1
+        assert self.spike_generation_cpp_position != -1
+        assert self.spike_generation_gpu_setting_position != -1
+
+        if labels is None:
+            labels_copy: torch.Tensor = torch.tensor(
+                [], dtype=torch.int64, device=self.device
+            )
+        else:
+            labels_copy = (
+                labels.detach().clone().type(dtype=torch.int64).to(device=self.device)
+            )
+
         input_convolved = torch.nn.functional.fold(
             torch.nn.functional.unfold(
                 input.requires_grad_(True),
@@ -354,6 +399,12 @@ class SbS(torch.nn.Module):
             stride=(1, 1),
         )
 
+        if self.last_input_store is True:
+            self.last_input_data = input_convolved.detach().clone()
+            self.last_input_data /= self.last_input_data.sum(dim=1, keepdim=True)
+        else:
+            self.last_input_data = None
+
         epsilon_t_0: torch.Tensor = (
             (self._epsilon_t * self._epsilon_0).type(input.dtype).to(input.device)
         )
@@ -361,8 +412,8 @@ class SbS(torch.nn.Module):
         parameter_list = torch.tensor(
             [
                 int(self._w_trainable),  # 0
-                int(0),  # int(self._disable_scale_grade),  # 1
-                int(0),  # int(self._keep_last_grad_scale),  # 2
+                int(self._disable_scale_grade),  # 1
+                int(self._keep_last_grad_scale),  # 2
                 int(self._skip_gradient_calculation),  # 3
                 int(self._number_of_spikes),  # 4
                 int(self._number_of_cpu_processes),  # 5
@@ -371,6 +422,10 @@ class SbS(torch.nn.Module):
                 int(self._gpu_tuning_factor),  # 8
                 int(self._output_layer),  # 9
                 int(self._local_learning),  # 10
+                int(self.sbs_gpu_setting_position),  # 11
+                int(self.sbs_hdynamic_cpp_position),  # 12
+                int(self.spike_generation_cpp_position),  # 13
+                int(self.spike_generation_gpu_setting_position),  # 14
             ],
             dtype=torch.int64,
         )
@@ -401,8 +456,9 @@ class SbS(torch.nn.Module):
             self._weights,
             self._h_initial,
             parameter_list,
-            # self._last_grad_scale,
+            self._last_grad_scale,
             self._forgetting_offset,
+            labels_copy,
         )
 
         self._number_of_grad_weight_contributions += (
@@ -422,8 +478,9 @@ class FunctionalSbS(torch.autograd.Function):
         weights: torch.Tensor,
         h_initial: torch.Tensor,
         parameter_list: torch.Tensor,
-        # grad_output_scale: torch.Tensor,
+        grad_output_scale: torch.Tensor,
         forgetting_offset: torch.Tensor,
+        labels: torch.Tensor,
     ) -> torch.Tensor:
 
         assert input.dim() == 4
@@ -443,6 +500,11 @@ class FunctionalSbS(torch.autograd.Function):
         output_size_0: int = int(parameter_list[6])
         output_size_1: int = int(parameter_list[7])
         gpu_tuning_factor: int = int(parameter_list[8])
+
+        sbs_gpu_setting_position = int(parameter_list[11])
+        sbs_hdynamic_cpp_position = int(parameter_list[12])
+        spike_generation_cpp_position = int(parameter_list[13])
+        spike_generation_gpu_setting_position = int(parameter_list[14])
 
         # ###########################################################
         # Spike generation
@@ -480,9 +542,59 @@ class FunctionalSbS(torch.autograd.Function):
         assert spikes.is_contiguous() is True
 
         # time_start: float = time.perf_counter()
-        spike_generation: SpikeGeneration2DManyIP = SpikeGeneration2DManyIP()
+        spike_generation_profile = global_spike_generation_gpu_setting[
+            spike_generation_gpu_setting_position
+        ].clone()
 
-        spike_generation.spike_generation(
+        spike_generation_size = global_spike_size[
+            spike_generation_gpu_setting_position
+        ].clone()
+
+        if input.device != torch.device("cpu"):
+            if (
+                (spike_generation_profile.numel() == 1)
+                or (spike_generation_size[0] != int(spikes.shape[0]))
+                or (spike_generation_size[1] != int(spikes.shape[1]))
+                or (spike_generation_size[2] != int(spikes.shape[2]))
+                or (spike_generation_size[3] != int(spikes.shape[3]))
+            ):
+                spike_generation_profile = torch.zeros(
+                    (1, 7), dtype=torch.int64, device=torch.device("cpu")
+                )
+
+                global_spike_generation_cpp[
+                    spike_generation_cpp_position
+                ].gpu_occupancy_export(
+                    int(spikes.shape[2]),
+                    int(spikes.shape[3]),
+                    int(spikes.shape[0]),
+                    int(spikes.shape[1]),
+                    spike_generation_profile.data_ptr(),
+                    int(spike_generation_profile.shape[0]),
+                    int(spike_generation_profile.shape[1]),
+                )
+                global_spike_generation_gpu_setting[
+                    spike_generation_gpu_setting_position
+                ] = spike_generation_profile.clone()
+
+                spike_generation_size[0] = int(spikes.shape[0])
+                spike_generation_size[1] = int(spikes.shape[1])
+                spike_generation_size[2] = int(spikes.shape[2])
+                spike_generation_size[3] = int(spikes.shape[3])
+                global_spike_size[
+                    spike_generation_gpu_setting_position
+                ] = spike_generation_size.clone()
+
+            else:
+                global_spike_generation_cpp[
+                    spike_generation_cpp_position
+                ].gpu_occupancy_import(
+                    spike_generation_profile.data_ptr(),
+                    int(spike_generation_profile.shape[0]),
+                    int(spike_generation_profile.shape[1]),
+                )
+
+        global_spike_generation_cpp[spike_generation_cpp_position].spike_generation(
             input_cumsum.data_ptr(),
             int(input_cumsum.shape[0]),
             int(input_cumsum.shape[1]),
@@ -536,9 +648,46 @@ class FunctionalSbS(torch.autograd.Function):
         assert weights.ndim == 2
         assert h_initial.ndim == 1
 
-        h_dynamic: HDynamicCNNManyIP = HDynamicCNNManyIP()
+        sbs_profile = global_sbs_gpu_setting[sbs_gpu_setting_position].clone()
 
-        h_dynamic.update(
+        sbs_size = global_sbs_size[sbs_gpu_setting_position].clone()
+
+        if input.device != torch.device("cpu"):
+            if (
+                (sbs_profile.numel() == 1)
+                or (sbs_size[0] != int(output.shape[0]))
+                or (sbs_size[1] != int(output.shape[1]))
+                or (sbs_size[2] != int(output.shape[2]))
+                or (sbs_size[3] != int(output.shape[3]))
+            ):
+                sbs_profile = torch.zeros(
+                    (14, 7), dtype=torch.int64, device=torch.device("cpu")
+                )
+
+                global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position].gpu_occupancy_export(
+                    int(output.shape[2]),
+                    int(output.shape[3]),
+                    int(output.shape[0]),
+                    int(output.shape[1]),
+                    sbs_profile.data_ptr(),
+                    int(sbs_profile.shape[0]),
+                    int(sbs_profile.shape[1]),
+                )
+                global_sbs_gpu_setting[sbs_gpu_setting_position] = sbs_profile.clone()
+                sbs_size[0] = int(output.shape[0])
+                sbs_size[1] = int(output.shape[1])
+                sbs_size[2] = int(output.shape[2])
+                sbs_size[3] = int(output.shape[3])
+                global_sbs_size[sbs_gpu_setting_position] = sbs_size.clone()
+
+            else:
+                global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position].gpu_occupancy_import(
+                    sbs_profile.data_ptr(),
+                    int(sbs_profile.shape[0]),
+                    int(sbs_profile.shape[1]),
+                )
+
+        global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position].update(
             output.data_ptr(),
             int(output.shape[0]),
             int(output.shape[1]),
@@ -575,7 +724,8 @@ class FunctionalSbS(torch.autograd.Function):
             weights,
             output,
             parameter_list,
-            # grad_output_scale,
+            grad_output_scale,
+            labels,
         )
 
         return output
@@ -590,8 +740,11 @@ class FunctionalSbS(torch.autograd.Function):
             weights,
             output,
             parameter_list,
-            # last_grad_scale,
+            last_grad_scale,
+            labels,
         ) = ctx.saved_tensors
+
+        assert labels.numel() > 0
 
         # ##############################################
         # Default output
@@ -603,13 +756,14 @@ class FunctionalSbS(torch.autograd.Function):
         grad_h_initial = None
         grad_parameter_list = None
         grad_forgetting_offset = None
+        grad_labels = None
 
         # ##############################################
         # Parameters
         # ##############################################
         parameter_w_trainable: bool = bool(parameter_list[0])
-        # parameter_disable_scale_grade: bool = bool(parameter_list[1])
-        # parameter_keep_last_grad_scale: bool = bool(parameter_list[2])
+        parameter_disable_scale_grade: bool = bool(parameter_list[1])
+        parameter_keep_last_grad_scale: bool = bool(parameter_list[2])
         parameter_skip_gradient_calculation: bool = bool(parameter_list[3])
         parameter_output_layer: bool = bool(parameter_list[9])
         parameter_local_learning: bool = bool(parameter_list[10])
@@ -617,13 +771,13 @@ class FunctionalSbS(torch.autograd.Function):
         # ##############################################
         # Dealing with overall scale of the gradient
         # ##############################################
-        # if parameter_disable_scale_grade is False:
-        #     if parameter_keep_last_grad_scale is True:
-        #         last_grad_scale = torch.tensor(
-        #             [torch.abs(grad_output).max(), last_grad_scale]
-        #         ).max()
-        #     grad_output /= last_grad_scale
-        # grad_output_scale = last_grad_scale.clone()
+        if parameter_disable_scale_grade is False:
+            if parameter_keep_last_grad_scale is True:
+                last_grad_scale = torch.tensor(
+                    [torch.abs(grad_output).max(), last_grad_scale]
+                ).max()
+            grad_output /= last_grad_scale
+        grad_output_scale = last_grad_scale.clone()
 
         input /= input.sum(dim=1, keepdim=True, dtype=weights.dtype)
 
@@ -640,8 +794,9 @@ class FunctionalSbS(torch.autograd.Function):
                 grad_weights,
                 grad_h_initial,
                 grad_parameter_list,
-                # grad_output_scale,
+                grad_output_scale,
                 grad_forgetting_offset,
+                grad_labels,
             )
 
         # #################################################
@@ -682,6 +837,41 @@ class FunctionalSbS(torch.autograd.Function):
                 .sum(-1)
             )
 
+        elif (parameter_output_layer is True) and (parameter_local_learning is True):
+
+            target_one_hot: torch.Tensor = torch.zeros(
+                (
+                    labels.shape[0],
+                    output.shape[1],
+                ),
+                device=input.device,
+                dtype=input.dtype,
+            )
+
+            target_one_hot.scatter_(
+                1,
+                labels.to(input.device).unsqueeze(1),
+                torch.ones(
+                    (labels.shape[0], 1),
+                    device=input.device,
+                    dtype=input.dtype,
+                ),
+            )
+            target_one_hot = target_one_hot.unsqueeze(-1).unsqueeze(-1)
+
+            # (-2 * (input - backprop_bigr).unsqueeze(2) * (target_one_hot-output).unsqueeze(1))
+            # (-2 * input.unsqueeze(2) * (target_one_hot-output).unsqueeze(1))
+            grad_weights = (
+                (
+                    -2
+                    * (input - backprop_bigr).unsqueeze(2)
+                    * target_one_hot.unsqueeze(1)
+                )
+                .sum(0)
+                .sum(-1)
+                .sum(-1)
+            )
+
         else:
             # #################################################
             # Backprop
@@ -709,6 +899,7 @@ class FunctionalSbS(torch.autograd.Function):
             grad_weights,
             grad_h_initial,
             grad_parameter_list,
-            # grad_output_scale,
+            grad_output_scale,
             grad_forgetting_offset,
+            grad_labels,
         )

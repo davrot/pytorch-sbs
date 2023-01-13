@@ -57,10 +57,13 @@ def build_optimizer(
             optimizer_wf = Adam(
                 parameter_list_weights,
                 parameter_list_sbs,
+                logging=logging,
                 lr=cfg.learning_parameters.learning_rate_gamma_w,
             )
         else:
-            optimizer_wf = Adam(parameter_list_weights, parameter_list_sbs)
+            optimizer_wf = Adam(
+                parameter_list_weights, parameter_list_sbs, logging=logging
+            )
 
     elif cfg.learning_parameters.optimizer_name == "SGD":
         logging.info("Using optimizer: SGD")

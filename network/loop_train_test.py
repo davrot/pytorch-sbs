@@ -5,6 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from network.SbS import SbS
 from network.save_weight_and_bias import save_weight_and_bias
+from network.SbSReconstruction import SbSReconstruction
 
 
 def add_weight_and_bias_to_histogram(
@@ -94,7 +95,7 @@ def loss_function(
                 device=device,
                 dtype=default_dtype,
             ),
-        ).unsqueeze(-1).unsqueeze(-1)
+        )
 
         h_y1 = torch.log(h + 1e-20)
 
@@ -115,6 +116,44 @@ def loss_function(
             h.squeeze(-1).squeeze(-1), labels.to(device)
         )
         return my_loss
+    else:
+        return None
+
+
+def loss_function_reconstruction(
+    h_reco: torch.Tensor,
+    h_input: torch.Tensor,
+    loss_mode: int = 0,
+    loss_coeffs_mse: float = 0.0,
+    loss_coeffs_kldiv: float = 0.0,
+) -> torch.Tensor | None:
+    assert loss_mode >= 0
+    assert loss_mode <= 0
+
+    assert h_reco.ndim == 4
+    assert h_input.ndim == 4
+    assert h_reco.shape[0] == h_input.shape[0]
+    assert h_reco.shape[1] == h_input.shape[1]
+    assert h_reco.shape[2] == h_input.shape[2]
+    assert h_reco.shape[3] == h_input.shape[3]
+
+    if loss_mode == 0:
+
+        h_reco_log = torch.log(h_reco + 1e-20)
+
+        my_loss: torch.Tensor = (
+            torch.nn.functional.mse_loss(
+                h_reco,
+                h_input,
+                reduction="sum",
+            )
+            * loss_coeffs_mse
+            + torch.nn.functional.kl_div(h_reco_log, h_input + 1e-20, reduction="sum")
+            * loss_coeffs_kldiv
+        ) / (loss_coeffs_kldiv + loss_coeffs_mse)
+
+        return my_loss
+
     else:
         return None
 
@@ -228,15 +267,15 @@ def run_lr_scheduler(
             tb.flush()
 
 
-# def deal_with_gradient_scale(epoch_id: int, mini_batch_number: int, network):
-#     if (epoch_id == 0) and (mini_batch_number == 0):
-#         for id in range(0, len(network)):
-#             if isinstance(network[id], SbS) is True:
-#                 network[id].after_batch(True)
-#     else:
-#         for id in range(0, len(network)):
-#             if isinstance(network[id], SbS) is True:
-#                 network[id].after_batch()
+def deal_with_gradient_scale(epoch_id: int, mini_batch_number: int, network):
+    if (epoch_id == 0) and (mini_batch_number == 0):
+        for id in range(0, len(network)):
+            if isinstance(network[id], SbS) is True:
+                network[id].after_batch(True)
+    else:
+        for id in range(0, len(network)):
+            if isinstance(network[id], SbS) is True:
+                network[id].after_batch()
 
 
 def loop_train(
@@ -318,12 +357,20 @@ def loop_train(
                 if last_test_performance < 0:
                     logging.info("")
                 else:
-                    logging.info(
-                        (
-                            f"\t\t\tLast test performance: "
-                            f"{last_test_performance/100.0:^6.2%}"
+                    if isinstance(network[-1], SbSReconstruction) is False:
+                        logging.info(
+                            (
+                                f"\t\t\tLast test performance: "
+                                f"{last_test_performance/100.0:^6.2%}"
+                            )
                         )
-                    )
+                    else:
+                        logging.info(
+                            (
+                                f"\t\t\tLast test performance: "
+                                f"{last_test_performance:^6.2e}"
+                            )
+                        )
                 logging.info("----------------")
 
             number_of_pattern_in_minibatch += h_x_labels.shape[0]
@@ -345,18 +392,30 @@ def loop_train(
             # #####################################################
             # Calculate the loss function
             # #####################################################
-            my_loss: torch.Tensor | None = loss_function(
-                h=h_collection[-1],
-                labels=h_x_labels,
-                device=device,
-                default_dtype=default_dtype,
-                loss_mode=cfg.learning_parameters.loss_mode,
-                number_of_output_neurons=int(
-                    cfg.network_structure.number_of_output_neurons
-                ),
-                loss_coeffs_mse=float(cfg.learning_parameters.loss_coeffs_mse),
-                loss_coeffs_kldiv=float(cfg.learning_parameters.loss_coeffs_kldiv),
-            )
+
+            if isinstance(network[-1], SbSReconstruction) is False:
+                my_loss: torch.Tensor | None = loss_function(
+                    h=h_collection[-1],
+                    labels=h_x_labels,
+                    device=device,
+                    default_dtype=default_dtype,
+                    loss_mode=cfg.learning_parameters.loss_mode,
+                    number_of_output_neurons=int(
+                        cfg.network_structure.number_of_output_neurons
+                    ),
+                    loss_coeffs_mse=float(cfg.learning_parameters.loss_coeffs_mse),
+                    loss_coeffs_kldiv=float(cfg.learning_parameters.loss_coeffs_kldiv),
+                )
+            else:
+                assert cfg.learning_parameters.lr_scheduler_use_performance is False
+                my_loss = loss_function_reconstruction(
+                    h_reco=h_collection[-1],
+                    h_input=network[-2].last_input_data,
+                    loss_mode=cfg.learning_parameters.loss_mode,
+                    loss_coeffs_mse=float(cfg.learning_parameters.loss_coeffs_mse),
+                    loss_coeffs_kldiv=float(cfg.learning_parameters.loss_coeffs_kldiv),
+                )
+
             assert my_loss is not None
 
             time_after_forward_and_loss: float = time.perf_counter()
@@ -374,16 +433,17 @@ def loop_train(
             # Performance measures
             # #####################################################
 
-            correct_in_minibatch += (
-                (h_collection[-1].argmax(dim=1).squeeze().cpu() == h_x_labels)
-                .sum()
-                .item()
-            )
-            full_correct += (
-                (h_collection[-1].argmax(dim=1).squeeze().cpu() == h_x_labels)
-                .sum()
-                .item()
-            )
+            if isinstance(network[-1], SbSReconstruction) is False:
+                correct_in_minibatch += (
+                    (h_collection[-1].argmax(dim=1).squeeze().cpu() == h_x_labels)
+                    .sum()
+                    .item()
+                )
+                full_correct += (
+                    (h_collection[-1].argmax(dim=1).squeeze().cpu() == h_x_labels)
+                    .sum()
+                    .item()
+                )
 
             # We measure the scale of the propagated error
             # during the first minibatch
@@ -391,11 +451,11 @@ def loop_train(
             # the future error with it
             # Kind of deals with the vanishing /
             # exploding gradients
-            # deal_with_gradient_scale(
-            #     epoch_id=epoch_id,
-            #     mini_batch_number=mini_batch_number,
-            #     network=network,
-            # )
+            deal_with_gradient_scale(
+                epoch_id=epoch_id,
+                mini_batch_number=mini_batch_number,
+                network=network,
+            )
 
             # Measure the time for one mini-batch
             time_forward += time_after_forward_and_loss - time_mini_batch_start
@@ -403,21 +463,38 @@ def loop_train(
 
             if number_of_pattern_in_minibatch >= cfg.get_update_after_x_pattern():
 
-                logging.info(
-                    (
-                        f"{epoch_id:^6}=>{mini_batch_number:^6} "
-                        f"\t\tTraining {number_of_pattern_in_minibatch^6} pattern "
-                        f"with {correct_in_minibatch/number_of_pattern_in_minibatch:^6.2%} "
-                        f"\tForward time: \t{time_forward:^6.2f}sec"
+                if isinstance(network[-1], SbSReconstruction) is False:
+                    logging.info(
+                        (
+                            f"{epoch_id:^6}=>{mini_batch_number:^6} "
+                            f"\t\tTraining {number_of_pattern_in_minibatch^6} pattern "
+                            f"with {correct_in_minibatch/number_of_pattern_in_minibatch:^6.2%} "
+                            f"\tForward time: \t{time_forward:^6.2f}sec"
+                        )
                     )
-                )
 
-                logging.info(
-                    (
-                        f"\t\t\tLoss: {loss_in_minibatch/number_of_pattern_in_minibatch:^15.3e} "
-                        f"\t\t\tBackward time: \t{time_backward:^6.2f}sec "
+                    logging.info(
+                        (
+                            f"\t\t\tLoss: {loss_in_minibatch/number_of_pattern_in_minibatch:^15.3e} "
+                            f"\t\t\tBackward time: \t{time_backward:^6.2f}sec "
+                        )
                     )
-                )
+
+                else:
+                    logging.info(
+                        (
+                            f"{epoch_id:^6}=>{mini_batch_number:^6} "
+                            f"\t\tTraining {number_of_pattern_in_minibatch^6} pattern "
+                            f"\t\t\tForward time: \t{time_forward:^6.2f}sec"
+                        )
+                    )
+
+                    logging.info(
+                        (
+                            f"\t\t\tLoss: {loss_in_minibatch/number_of_pattern_in_minibatch:^15.3e} "
+                            f"\t\t\tBackward time: \t{time_backward:^6.2f}sec "
+                        )
+                    )
 
                 my_loss_for_batch = loss_in_minibatch / number_of_pattern_in_minibatch
 
@@ -507,6 +584,68 @@ def loop_test(
     logging.info("")
 
     tb.add_scalar("Test Error", 100.0 - performance, epoch_id)
+    tb.flush()
+
+    return performance
+
+
+def loop_test_reconstruction(
+    epoch_id: int,
+    cfg: Config,
+    network: torch.nn.modules.container.Sequential,
+    my_loader_test: torch.utils.data.dataloader.DataLoader,
+    the_dataset_test,
+    device: torch.device,
+    default_dtype: torch.dtype,
+    logging,
+    tb: SummaryWriter,
+) -> float:
+
+    test_count: int = 0
+    test_loss: float = 0.0
+    test_complete: int = the_dataset_test.__len__()
+
+    logging.info("")
+    logging.info("Testing:")
+
+    for h_x, h_x_labels in my_loader_test:
+        time_0 = time.perf_counter()
+
+        h_collection = forward_pass_test(
+            input=h_x,
+            the_dataset_test=the_dataset_test,
+            cfg=cfg,
+            network=network,
+            device=device,
+            default_dtype=default_dtype,
+        )
+
+        my_loss: torch.Tensor | None = loss_function_reconstruction(
+            h_reco=h_collection[-1],
+            h_input=network[-2].last_input_data,
+            loss_mode=cfg.learning_parameters.loss_mode,
+            loss_coeffs_mse=float(cfg.learning_parameters.loss_coeffs_mse),
+            loss_coeffs_kldiv=float(cfg.learning_parameters.loss_coeffs_kldiv),
+        )
+
+        assert my_loss is not None
+        test_count += h_x_labels.shape[0]
+        test_loss += my_loss.item()
+
+        performance = test_loss / test_count
+        time_1 = time.perf_counter()
+        time_measure_a = time_1 - time_0
+
+        logging.info(
+            (
+                f"\t\t{test_count} of {test_complete}"
+                f" with {performance:^6.2e} \t Time used: {time_measure_a:^6.2f}sec"
+            )
+        )
+
+    logging.info("")
+
+    tb.add_scalar("Test Error", performance, epoch_id)
     tb.flush()
 
     return performance

@@ -3,6 +3,10 @@ import math
 
 from network.CPP.PyMultiApp import MultiApp
 
+global_multiapp_gpu_setting: list[torch.Tensor] = []
+global_multiapp_size: list[torch.Tensor] = []
+global_multiapp_cpp: list[MultiApp] = []
+
 
 class Conv2dApproximation(torch.nn.Module):
 
@@ -25,6 +29,9 @@ class Conv2dApproximation(torch.nn.Module):
 
     device: torch.device
     dtype: torch.dtype
+
+    multiapp_gpu_setting_position: int = -1
+    multiapp_cpp_position: int = -1
 
     def __init__(
         self,
@@ -67,6 +74,12 @@ class Conv2dApproximation(torch.nn.Module):
         self.approximation_enable = approximation_enable
         self.number_of_trunc_bits = number_of_trunc_bits
         self.number_of_frac = number_of_frac
+
+        global_multiapp_gpu_setting.append(torch.tensor([0]))
+        global_multiapp_size.append(torch.tensor([0, 0, 0, 0]))
+        global_multiapp_cpp.append(MultiApp())
+        self.multiapp_gpu_setting_position = len(global_multiapp_gpu_setting) - 1
+        self.multiapp_cpp_position = len(global_multiapp_cpp) - 1
 
         if self.use_bias is True:
             self.bias: torch.nn.parameter.Parameter | None = (
@@ -190,6 +203,8 @@ class Conv2dApproximation(torch.nn.Module):
         assert input.dim() == 4
 
         assert self.kernel_size is not None
+        assert self.multiapp_gpu_setting_position != -1
+        assert self.multiapp_cpp_position != -1
 
         input_size = torch.Tensor([int(input.shape[-2]), int(input.shape[-1])]).type(
             dtype=torch.int64
@@ -232,6 +247,8 @@ class Conv2dApproximation(torch.nn.Module):
                 int(self.number_of_trunc_bits),  # 1
                 int(self.number_of_frac),  # 2
                 int(number_of_cpu_processes),  # 3
+                int(self.multiapp_gpu_setting_position),  # 4
+                int(self.multiapp_cpp_position),  # 5
             ],
             dtype=torch.int64,
         )
@@ -267,6 +284,8 @@ class FunctionalMultiConv2d(torch.autograd.Function):
         number_of_trunc_bits = int(parameter_list[1])
         number_of_frac = int(parameter_list[2])
         number_of_processes = int(parameter_list[3])
+        multiapp_gpu_setting_position = int(parameter_list[4])
+        multiapp_cpp_position = int(parameter_list[5])
 
         assert input.device == weights.device
 
@@ -278,9 +297,54 @@ class FunctionalMultiConv2d(torch.autograd.Function):
         )
         assert output.is_contiguous() is True
 
-        multiplier: MultiApp = MultiApp()
+        multiapp_profile = global_multiapp_gpu_setting[
+            multiapp_gpu_setting_position
+        ].clone()
 
-        multiplier.update_with_init_vector_multi_pattern(
+        multiapp_size = global_multiapp_size[multiapp_gpu_setting_position].clone()
+
+        if input.device != torch.device("cpu"):
+            if (
+                (multiapp_profile.numel() == 1)
+                or (multiapp_size[0] != int(output.shape[0]))
+                or (multiapp_size[1] != int(output.shape[1]))
+                or (multiapp_size[2] != int(output.shape[2]))
+                or (multiapp_size[3] != int(output.shape[3]))
+            ):
+                multiapp_profile = torch.zeros(
+                    (1, 7), dtype=torch.int64, device=torch.device("cpu")
+                )
+
+                global_multiapp_cpp[multiapp_cpp_position].gpu_occupancy_export(
+                    int(output.shape[2]),
+                    int(output.shape[3]),
+                    int(output.shape[0]),
+                    int(output.shape[1]),
+                    multiapp_profile.data_ptr(),
+                    int(multiapp_profile.shape[0]),
+                    int(multiapp_profile.shape[1]),
+                )
+                global_multiapp_gpu_setting[
+                    multiapp_gpu_setting_position
+                ] = multiapp_profile.clone()
+
+                multiapp_size[0] = int(output.shape[0])
+                multiapp_size[1] = int(output.shape[1])
+                multiapp_size[2] = int(output.shape[2])
+                multiapp_size[3] = int(output.shape[3])
+
+                global_multiapp_size[
+                    multiapp_gpu_setting_position
+                ] = multiapp_size.clone()
+
+            else:
+                global_multiapp_cpp[multiapp_cpp_position].gpu_occupancy_import(
+                    multiapp_profile.data_ptr(),
+                    int(multiapp_profile.shape[0]),
+                    int(multiapp_profile.shape[1]),
+                )
+
+        global_multiapp_cpp[multiapp_cpp_position].update_entrypoint(
             input.data_ptr(),
             weights.data_ptr(),
             output.data_ptr(),

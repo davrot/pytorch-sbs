@@ -47,8 +47,8 @@ class LearningParameters:
     weight_noise_range: list[float] = field(default_factory=list)
     eps_xy_intitial: float = field(default=0.1)
 
-    # disable_scale_grade: bool = field(default=False)
-    # kepp_last_grad_scale: bool = field(default=True)
+    disable_scale_grade: bool = field(default=False)
+    kepp_last_grad_scale: bool = field(default=True)
 
     sbs_skip_gradient_calculation: list[bool] = field(default_factory=list)
 

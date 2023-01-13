@@ -15,6 +15,7 @@ class Adam(torch.optim.Optimizer):
         self,
         params,
         sbs_setting: list[bool],
+        logging,
         lr: float = 1e-3,
         beta1: float = 0.9,
         beta2: float = 0.999,
@@ -41,6 +42,7 @@ class Adam(torch.optim.Optimizer):
         self.beta2 = beta2
         self.eps = eps
         self.maximize = maximize
+        self._logging = logging
 
         defaults = dict(
             lr=lr,
@@ -149,8 +151,12 @@ class Adam(torch.optim.Optimizer):
                 if sbs_setting[i] is False:
                     param -= step_size * (exp_avg / denom)
                 else:
-                    delta = torch.exp(-step_size * (exp_avg / denom))
-                    print(
-                        f"{float(delta.min()) - 1.0:.4e}  {float(delta.max()) - 1.0:.4e} {lr:.4e}"
+                    # delta = torch.exp(-step_size * (exp_avg / denom))
+                    delta = torch.tanh(-step_size * (exp_avg / denom))
+                    delta += 1.0
+                    delta *= 0.5
+                    delta += 0.5
+                    self._logging.info(
+                        f"ADAM: Layer {i} -> dw_min:{float(delta.min()):.4e}  dw_max:{float(delta.max()):.4e} lr:{lr:.4e}"
                     )
                     param *= delta

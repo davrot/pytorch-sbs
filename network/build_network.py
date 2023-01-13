@@ -6,6 +6,7 @@ from network.Parameter import Config
 from network.SbS import SbS
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
+from network.SbSReconstruction import SbSReconstruction
 
 
 def build_network(
@@ -159,12 +160,13 @@ def build_network(
                     padding=padding,
                     number_of_cpu_processes=cfg.number_of_cpu_processes,
                     w_trainable=w_trainable,
-                    # keep_last_grad_scale=cfg.learning_parameters.kepp_last_grad_scale,
-                    # disable_scale_grade=cfg.learning_parameters.disable_scale_grade,
+                    keep_last_grad_scale=cfg.learning_parameters.kepp_last_grad_scale,
+                    disable_scale_grade=cfg.learning_parameters.disable_scale_grade,
                     forgetting_offset=cfg.forgetting_offset,
                     skip_gradient_calculation=sbs_skip_gradient_calculation,
                     device=device,
                     default_dtype=default_dtype,
+                    layer_id=layer_id,
                 )
             )
             # Adding the x,y output dimensions
@@ -177,6 +179,25 @@ def build_network(
             network[-1]._local_learning = False
             if cfg.network_structure.layer_type[layer_id].upper().find("LOCAL") != -1:
                 network[-1]._local_learning = True
+
+        elif (
+            cfg.network_structure.layer_type[layer_id]
+            .upper()
+            .startswith("RECONSTRUCTION")
+            is True
+        ):
+            logging.info(f"Layer: {layer_id} -> SbS Reconstruction Layer")
+
+            assert layer_id > 0
+            assert isinstance(network[-1], SbS) is True
+
+            network.append(SbSReconstruction(network[-1]))
+            network[-1]._w_trainable = False
+
+            if layer_id == len(cfg.network_structure.layer_type) - 1:
+                network[-2].last_input_store = True
+
+            input_size.append(input_size[-1])
 
         # #############################################################
         # Split On Off Layer:
