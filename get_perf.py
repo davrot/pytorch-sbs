@@ -43,5 +43,5 @@ for te_item in te:
 temp = np.array(temp)
 
 print(temp)
-np.save(f"test_error_{number_of_spikes}.npy", temp)
+np.save(f"test_error.npy", temp)
 
