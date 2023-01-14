@@ -1,0 +1,4 @@
+{
+    "data_path": "./DATA_FASHION_MNIST/",
+    "data_mode": "MNIST_FASHION"
+}
