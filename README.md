@@ -27,7 +27,7 @@ pip install pybind11
 The Makefile uses clang as a compiler. If you want something else then you need to change the Makefile.
 For CUDA I used version 12.0.
 
-# C++
+# Config files and pre-existing weights
 
 Three .json config files are required: 
 
