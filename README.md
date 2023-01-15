@@ -26,3 +26,15 @@ In addition your Python installation needs the PyBind11 package installed. You m
 pip install pybind11  
 The Makefile uses clang as a compiler. If you want something else then you need to change the Makefile.
 For CUDA I used version 12.0.
+
+# C++
+
+Three .json config files are required: 
+
+dataset.json : Information about the dataset
+
+network.json : Describes the network architecture
+
+def.json : Controlls the other parameters 
+
+If you want to load existing weights, just put them in a sub-folder called Previous
