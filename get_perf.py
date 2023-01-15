@@ -15,7 +15,7 @@ filename:str = "def.json"
 with open(filename) as json_file:
     minified = jsmin(json_file.read())
 data = json.loads(minified)
-number_of_spikes = data["number_of_spikes"]
+
 
 
 # -------------------------------
