@@ -1,0 +1,97 @@
+{
+    "network_structure": {
+        "number_of_output_neurons": 10,
+        "layer_type": [
+            "APPROX CONV2D",
+            "RELU",
+            "MAX POOLING",
+            "APPROX CONV2D",
+            "RELU",
+            "MAX POOLING",
+            "APPROX CONV2D",
+            "RELU",
+            "APPROX CONV2D"
+        ],
+        "strides": [
+            [
+                1,
+                1
+            ], // "CONV2D"
+            [], // "RELU",
+            [
+                2,
+                2
+            ], // "MAX POOLING",
+            [
+                1,
+                1
+            ], // "CONV2D"
+            [], // "RELU",
+            [
+                2,
+                2
+            ], // "MAX POOLING",
+            [
+                1,
+                1
+            ], // "CONV2D"
+            [], // "RELU",
+            [
+                1,
+                1
+            ] // "CONV2D"
+        ],
+        "forward_neuron_numbers": [
+            [
+                1,
+                32
+            ], // "CONV2D",
+            [], // "RELU",
+            [], // "MAX POOLING",
+            [
+                32,
+                64
+            ], // "CONV2D",
+            [], // "RELU",
+            [], // "MAX POOLING",
+            [
+                64,
+                96
+            ], // "CONV2D",
+            [], // "RELU",
+            [
+                96,
+                10
+            ] // "CONV2D",            
+        ],
+        "forward_kernel_size": [
+            [
+                5,
+                5
+            ], // "CONV2D",
+            [], // "RELU",
+            [
+                2,
+                2
+            ], // "MAX POOLING",
+            [
+                5,
+                5
+            ], // "CONV2D",
+            [], // "RELU",
+            [
+                2,
+                2
+            ], // "MAX POOLING",
+            [
+                3,
+                3
+            ], // "CONV2D",
+            [], // "RELU",
+            [
+                1,
+                1
+            ] // "CONV2D",            
+        ]
+    }
+}
