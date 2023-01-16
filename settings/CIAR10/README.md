@@ -2,4 +2,4 @@ CNN: 72.91%
 
 SbS Mixed Loss: 71.03%
 
-SbS Entropy: 
+SbS Entropy: 69.85%
