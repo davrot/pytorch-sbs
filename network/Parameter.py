@@ -1,7 +1,6 @@
 # %%
 from dataclasses import dataclass, field
 import numpy as np
-import torch
 import os
 
 
@@ -101,6 +100,8 @@ class Config:
         default_factory=ApproximationSetting
     )
 
+    extract_noisy_pictures: bool = field(default=False)
+
     # For labeling simulations
     # (not actively used)
     simulation_id: int = field(default=0)
@@ -162,21 +163,6 @@ class Config:
 
             self.batch_size = np.max((self.batch_size, self.number_of_cpu_processes))
         self.batch_size = int(self.batch_size)
-
-    def get_epsilon_t(self, number_of_spikes: int):
-        """Generates the time series of the basic epsilon."""
-        t = np.arange(0, number_of_spikes, dtype=np.float32) + 1
-        np_epsilon_t: np.ndarray = t ** (
-            -1.0 / 2.0
-        )  # np.ones((number_of_spikes), dtype=np.float32)
-
-        if (self.cooldown_after_number_of_spikes < number_of_spikes) and (
-            self.cooldown_after_number_of_spikes >= 0
-        ):
-            np_epsilon_t[
-                self.cooldown_after_number_of_spikes : number_of_spikes
-            ] /= self.reduction_cooldown
-        return torch.tensor(np_epsilon_t)
 
     def get_update_after_x_pattern(self):
         """Tells us after how many pattern we need to update the weights."""

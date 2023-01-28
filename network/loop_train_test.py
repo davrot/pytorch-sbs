@@ -185,11 +185,14 @@ def forward_pass_train(
 
 def forward_pass_test(
     input: torch.Tensor,
+    labels: torch.Tensor | None,
     the_dataset_test,
     cfg: Config,
     network: torch.nn.modules.container.Sequential,
     device: torch.device,
     default_dtype: torch.dtype,
+    mini_batch_id: int = -1,
+    overwrite_number_of_spikes: int = -1,
 ) -> list[torch.Tensor]:
 
     h_collection = []
@@ -199,7 +202,22 @@ def forward_pass_test(
         .to(device=device)
     )
     for id in range(0, len(network)):
-        h_collection.append(network[id](h_collection[-1]))
+        if (cfg.extract_noisy_pictures is True) or (overwrite_number_of_spikes != -1):
+            if isinstance(network[id], SbS) is True:
+                h_collection.append(
+                    network[id](
+                        h_collection[-1],
+                        layer_id=id,
+                        labels=labels,
+                        extract_noisy_pictures=cfg.extract_noisy_pictures,
+                        mini_batch_id=mini_batch_id,
+                        overwrite_number_of_spikes=overwrite_number_of_spikes,
+                    )
+                )
+            else:
+                h_collection.append(network[id](h_collection[-1]))
+        else:
+            h_collection.append(network[id](h_collection[-1]))
 
     return h_collection
 
@@ -545,7 +563,8 @@ def loop_test(
     device: torch.device,
     default_dtype: torch.dtype,
     logging,
-    tb: SummaryWriter,
+    tb: SummaryWriter | None,
+    overwrite_number_of_spikes: int = -1,
 ) -> float:
 
     test_correct = 0
@@ -554,17 +573,21 @@ def loop_test(
 
     logging.info("")
     logging.info("Testing:")
+    mini_batch_id: int = 0
 
     for h_x, h_x_labels in my_loader_test:
         time_0 = time.perf_counter()
 
         h_collection = forward_pass_test(
             input=h_x,
+            labels=h_x_labels,
             the_dataset_test=the_dataset_test,
             cfg=cfg,
             network=network,
             device=device,
             default_dtype=default_dtype,
+            mini_batch_id=mini_batch_id,
+            overwrite_number_of_spikes=overwrite_number_of_spikes,
         )
         h_h: torch.Tensor = h_collection[-1].detach().clone().cpu()
 
@@ -580,11 +603,13 @@ def loop_test(
                 f" with {performance/100:^6.2%} \t Time used: {time_measure_a:^6.2f}sec"
             )
         )
+        mini_batch_id += 1
 
     logging.info("")
 
-    tb.add_scalar("Test Error", 100.0 - performance, epoch_id)
-    tb.flush()
+    if tb is not None:
+        tb.add_scalar("Test Error", 100.0 - performance, epoch_id)
+        tb.flush()
 
     return performance
 
@@ -598,7 +623,7 @@ def loop_test_reconstruction(
     device: torch.device,
     default_dtype: torch.dtype,
     logging,
-    tb: SummaryWriter,
+    tb: SummaryWriter | None,
 ) -> float:
 
     test_count: int = 0
@@ -613,6 +638,7 @@ def loop_test_reconstruction(
 
         h_collection = forward_pass_test(
             input=h_x,
+            labels=None,
             the_dataset_test=the_dataset_test,
             cfg=cfg,
             network=network,
@@ -645,7 +671,8 @@ def loop_test_reconstruction(
 
     logging.info("")
 
-    tb.add_scalar("Test Error", performance, epoch_id)
-    tb.flush()
+    if tb is not None:
+        tb.add_scalar("Test Error", performance, epoch_id)
+        tb.flush()
 
     return performance

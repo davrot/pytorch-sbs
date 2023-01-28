@@ -150,7 +150,6 @@ def build_network(
                     input_size=input_size[-1],
                     forward_kernel_size=kernel_size,
                     number_of_spikes=number_of_spikes,
-                    epsilon_t=cfg.get_epsilon_t(number_of_spikes),
                     epsilon_xy_intitial=cfg.learning_parameters.eps_xy_intitial,
                     epsilon_0=cfg.epsilon_0,
                     weight_noise_range=weight_noise_range,
@@ -167,6 +166,8 @@ def build_network(
                     device=device,
                     default_dtype=default_dtype,
                     layer_id=layer_id,
+                    cooldown_after_number_of_spikes=cfg.cooldown_after_number_of_spikes,
+                    reduction_cooldown=cfg.reduction_cooldown,
                 )
             )
             # Adding the x,y output dimensions
