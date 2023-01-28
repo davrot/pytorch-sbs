@@ -38,6 +38,20 @@ class HDynamicCNNManyIP
         float forgetting_offset,
         int64_t gpu_tuning_factor);
 
+    void gpu_occupancy_export(
+        size_t dim_x,
+        size_t dim_y,
+        size_t number_of_pattern,
+        size_t h_dim,
+        int64_t setting_memory_addr,
+        size_t setting_dim_0,
+        size_t setting_dim_1);
+
+    void gpu_occupancy_import(
+        int64_t setting_memory_addr,
+        size_t setting_dim_0,
+        size_t setting_dim_1);
+
     private:
 
     bool update(
