@@ -130,9 +130,9 @@ class SbS(torch.nn.Module):
         global_spike_size.append(torch.tensor([0, 0, 0, 0]))
 
         if device == torch.device("cpu"):
-            global_sbs_hdynamic_cpp.append(HDynamicCNNGPU())
-        else:
             global_sbs_hdynamic_cpp.append(HDynamicCNNCPU())
+        else:
+            global_sbs_hdynamic_cpp.append(HDynamicCNNGPU())
 
         if device == torch.device("cpu"):
             global_spike_generation_cpp.append(SpikeGenerationCPU())
