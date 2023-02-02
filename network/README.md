@@ -1,4 +1,7 @@
-1. Compile the desired CPP_* version
+0. Modify the .env file according your system
 
-2. Make a symbolic link or copy the folder such it has the name CPP
+1. Compile the desired c++ modules
+
+
+
 
