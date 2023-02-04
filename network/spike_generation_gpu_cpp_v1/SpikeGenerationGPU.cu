@@ -22,19 +22,19 @@ SpikeGenerationGPU::~SpikeGenerationGPU()
 void SpikeGenerationGPU::entrypoint(
     int64_t input_pointer_addr,
     int64_t input_dim_0,
-    int64_t input_dim_1, 
-    int64_t input_dim_2, 
+    int64_t input_dim_1,
+    int64_t input_dim_2,
     int64_t input_dim_3,
-    int64_t random_values_pointer_addr, 
+    int64_t random_values_pointer_addr,
     int64_t random_values_dim_0,
-    int64_t random_values_dim_1, 
+    int64_t random_values_dim_1,
     int64_t random_values_dim_2,
-    int64_t random_values_dim_3, 
+    int64_t random_values_dim_3,
     int64_t output_pointer_addr,
-    int64_t output_dim_0, 
-    int64_t output_dim_1, 
+    int64_t output_dim_0,
+    int64_t output_dim_1,
     int64_t output_dim_2,
-    int64_t output_dim_3, 
+    int64_t output_dim_3,
     int64_t number_of_cpu_processes)
 {
 
@@ -87,7 +87,7 @@ void SpikeGenerationGPU::entrypoint(
     size_t x_dim = output_dim_2;
     size_t y_dim = output_dim_2;
 
-    assert ((number_of_cpu_processes <= 0));
+    assert((number_of_cpu_processes <= 0));
 
     gpu_spike_generation(
         input_pointer,
@@ -208,9 +208,9 @@ void SpikeGenerationGPU::gpu_spike_generation(
     assert((x_dim < 65535));
     assert((y_dim < 65535));
 
-  // //////////////////////////////////////
-  // Calculate the distribution on the GPU
-  // //////////////////////////////////////
+    // //////////////////////////////////////
+    // Calculate the distribution on the GPU
+    // //////////////////////////////////////
 
     int min_grid_size;
     int block_size;
@@ -222,6 +222,15 @@ void SpikeGenerationGPU::gpu_spike_generation(
     status = cudaOccupancyMaxPotentialBlockSize(&min_grid_size, &block_size,
         (void*)kernel_spike_generation,
         dynamic_s_mem_size, max_threadable_tasks);
+    if (status != cudaSuccess)
+    {
+        std::cerr << "CUDA Runtime Error at: "
+            << __FILE__
+            << ":"
+            << __LINE__
+            << std::endl;
+        std::cerr << cudaGetErrorString(status) << std::endl;
+    }
     assert((status == cudaSuccess));
 
     grid_size = ((number_of_pattern * spike_dim) + block_size - 1) / block_size;
@@ -248,8 +257,17 @@ void SpikeGenerationGPU::gpu_spike_generation(
         h_dim,
         (number_of_pattern * spike_dim));
 
-    cudaDeviceSynchronize();
-
+    status = cudaDeviceSynchronize();
+    if (status != cudaSuccess)
+    {
+        std::cerr << "CUDA Runtime Error at: "
+            << __FILE__
+            << ":"
+            << __LINE__
+            << std::endl;
+        std::cerr << cudaGetErrorString(status) << std::endl;
+    }
+    assert((status == cudaSuccess));
     return;
 };
 

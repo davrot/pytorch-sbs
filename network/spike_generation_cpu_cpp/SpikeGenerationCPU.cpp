@@ -198,3 +198,23 @@ size_t SpikeGenerationCPU::lower_bound(float* data_ptr,
     }
     return start_of_range;
 };
+
+void SpikeGenerationCPU::gpu_occupancy_export(
+    size_t dim_x,
+    size_t dim_y,
+    size_t number_of_pattern,
+    size_t spike_dim,
+    int64_t setting_memory_addr,
+    size_t setting_dim_0,
+    size_t setting_dim_1)
+{
+    return;
+};
+
+void SpikeGenerationCPU::gpu_occupancy_import(
+    int64_t setting_memory_addr,
+    size_t setting_dim_0,
+    size_t setting_dim_1)
+{
+    return;
+};

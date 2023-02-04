@@ -98,6 +98,15 @@ void occupancy_kernel_spike_generation(
     status = cudaOccupancyMaxPotentialBlockSize(
         &min_grid_size, &thread_block_size, (void*)kernel_spike_generation, 0,
         max_threadable_tasks);
+    if (status != cudaSuccess)
+    {
+        std::cerr << "CUDA Runtime Error at: "
+            << __FILE__
+            << ":"
+            << __LINE__
+            << std::endl;
+        std::cerr << cudaGetErrorString(status) << std::endl;
+    }
     assert((status == cudaSuccess));
 
     grid_size =
