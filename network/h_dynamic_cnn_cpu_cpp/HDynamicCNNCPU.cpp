@@ -64,13 +64,20 @@ void HDynamicCNNCPU::entrypoint(
     size_t h_dim_c1 = h_dim_2 * h_dim_3;
     size_t h_dim_c2 = h_dim_3;
 
-    float* epsilon_xy_pointer = (float*)epsilon_xy_pointer_addr;
-    assert((epsilon_xy_pointer != nullptr));
-    assert((epsilon_xy_dim_0 > 0));
-    assert((epsilon_xy_dim_1 > 0));
+    float* epsilon_xy_pointer = nullptr;
+    size_t epsilon_xy_dim_c0 = 0;
+    size_t epsilon_xy_dim_c1 = 0;
+    if (epsilon_xy_pointer_addr != 0)
+    {
+        epsilon_xy_pointer = (float*)epsilon_xy_pointer_addr;
+        assert((epsilon_xy_pointer != nullptr));
+        assert((epsilon_xy_dim_0 > 0));
+        assert((epsilon_xy_dim_1 > 0));
+        assert((epsilon_xy_dim_2 > 0));
 
-    size_t epsilon_xy_dim_c0 = epsilon_xy_dim_2 * epsilon_xy_dim_1;
-    size_t epsilon_xy_dim_c1 = epsilon_xy_dim_2;
+        epsilon_xy_dim_c0 = epsilon_xy_dim_2 * epsilon_xy_dim_1;
+        epsilon_xy_dim_c1 = epsilon_xy_dim_2;
+    }
 
     float* epsilon_t_pointer = (float*)epsilon_t_pointer_addr;
     assert((epsilon_t_pointer != nullptr));
@@ -164,16 +171,18 @@ void HDynamicCNNCPU::update(
 {
 
     float* h_ptr;
-    float* epsilon_xy_ptr;
+    float* epsilon_xy_ptr = nullptr;
     int64_t* input_ptr;
 
     for (size_t counter_x = 0; counter_x < dim_x; counter_x++)
     {
         for (size_t counter_y = 0; counter_y < dim_y; counter_y++)
         {
-            epsilon_xy_ptr = epsilon_xy_pointer +
-                counter_x * epsilon_xy_dim_c1 + counter_y;
-
+            if (epsilon_xy_dim_c1 != 0)
+            {
+                epsilon_xy_ptr = epsilon_xy_pointer +
+                    counter_x * epsilon_xy_dim_c1 + counter_y;
+            }
             h_ptr = h_pointer +
                 pattern_id * h_dim_c0 + counter_x * h_dim_c2 + counter_y;
 
@@ -252,8 +261,15 @@ void HDynamicCNNCPU::update_one_ip(
 
         if (*spike >= 0)
         {
-            epsilon_subsegment =
-                epsilon_xy_pointer[*spike * epsilon_xy_dim_c0] * epsilon_t_pointer[counter_spike];
+            if (epsilon_xy_dim_c0 != 0)
+            {
+                epsilon_subsegment =
+                    epsilon_xy_pointer[*spike * epsilon_xy_dim_c0] * epsilon_t_pointer[counter_spike];
+            }
+            else
+            {
+                epsilon_subsegment = epsilon_t_pointer[counter_spike];
+            }
 
             w_ptr = weights_pointer + *spike * weights_dim_c0;
 
