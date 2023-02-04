@@ -12,6 +12,8 @@ class DatasetMaster(torch.utils.data.Dataset, ABC):
     pattern_storage: np.ndarray
     number_of_pattern: int
     mean: list[float]
+    initial_size: list[int]
+    channel_size: int
 
     # Initialize
     def __init__(
@@ -35,6 +37,9 @@ class DatasetMaster(torch.utils.data.Dataset, ABC):
         self.number_of_pattern = self.label_storage.shape[0]
 
         self.mean = []
+
+        self.initial_size = [0, 0]
+        self.channel_size = 0
 
     def __len__(self) -> int:
         return self.number_of_pattern
@@ -73,6 +78,9 @@ class DatasetMNIST(DatasetMaster):
 
         mean = self.pattern_storage.mean(3).mean(2).mean(0)
         self.mean = [*mean]
+
+        self.initial_size = [28, 28]
+        self.channel_size = 1
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
 
@@ -153,6 +161,9 @@ class DatasetFashionMNIST(DatasetMaster):
 
         mean = self.pattern_storage.mean(3).mean(2).mean(0)
         self.mean = [*mean]
+
+        self.initial_size = [28, 28]
+        self.channel_size = 1
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
 
@@ -239,6 +250,9 @@ class DatasetCIFAR(DatasetMaster):
 
         mean = self.pattern_storage.mean(3).mean(2).mean(0)
         self.mean = [*mean]
+
+        self.initial_size = [32, 32]
+        self.channel_size = 3
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
 

@@ -3,10 +3,11 @@ import torch
 
 from network.calculate_output_size import calculate_output_size
 from network.Parameter import Config
-from network.SbS import SbS
+from network.SbSLayer import SbSLayer
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
 from network.SbSReconstruction import SbSReconstruction
+from network.InputSpikeImage import InputSpikeImage
 
 
 def build_network(
@@ -144,7 +145,7 @@ def build_network(
                 is_pooling_layer = True
 
             network.append(
-                SbS(
+                SbSLayer(
                     number_of_input_neurons=in_channels,
                     number_of_neurons=out_channels,
                     input_size=input_size[-1],
@@ -190,7 +191,7 @@ def build_network(
             logging.info(f"Layer: {layer_id} -> SbS Reconstruction Layer")
 
             assert layer_id > 0
-            assert isinstance(network[-1], SbS) is True
+            assert isinstance(network[-1], SbSLayer) is True
 
             network.append(SbSReconstruction(network[-1]))
             network[-1]._w_trainable = False
@@ -364,6 +365,36 @@ def build_network(
                 padding=padding,
             ).tolist()
             input_size.append(input_size_temp)
+
+        # #############################################################
+        # Approx CONV2D layer:
+        # #############################################################
+
+        elif (
+            cfg.network_structure.layer_type[layer_id]
+            .upper()
+            .startswith("INPUT SPIKE IMAGE")
+            is True
+        ):
+            logging.info(f"Layer: {layer_id} -> Input Spike Image Layer")
+
+            number_of_spikes: int = -1
+            if len(cfg.number_of_spikes) > layer_id:
+                number_of_spikes = cfg.number_of_spikes[layer_id]
+            elif len(cfg.number_of_spikes) == 1:
+                number_of_spikes = cfg.number_of_spikes[0]
+
+            network.append(
+                InputSpikeImage(
+                    number_of_spikes=number_of_spikes,
+                    number_of_cpu_processes=cfg.number_of_cpu_processes,
+                    reshape=True,
+                    normalize=True,
+                    device=device,
+                )
+            )
+
+            input_size.append(input_size[-1])
 
         # #############################################################
         # Failure becaue we didn't found the selection of layer

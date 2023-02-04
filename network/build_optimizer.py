@@ -1,7 +1,7 @@
 # %%
 import torch
 from network.Parameter import Config
-from network.SbS import SbS
+from network.SbSLayer import SbSLayer
 from network.Conv2dApproximation import Conv2dApproximation
 from network.Adam import Adam
 
@@ -20,7 +20,7 @@ def build_optimizer(
 
     for id in range(0, len(network)):
 
-        if (isinstance(network[id], SbS) is True) and (
+        if (isinstance(network[id], SbSLayer) is True) and (
             network[id]._w_trainable is True
         ):
             parameter_list_weights.append(network[id]._weights)

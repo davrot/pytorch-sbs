@@ -3,8 +3,6 @@ import torch
 from network.PySpikeGenerationCPU import SpikeGenerationCPU
 from network.PySpikeGenerationGPU import SpikeGenerationGPU
 
-# from PyCountSpikesCPU import CountSpikesCPU
-
 global_spike_generation_gpu_setting: list[torch.Tensor] = []
 global_spike_size: list[torch.Tensor] = []
 global_spike_generation_cpp: list[SpikeGenerationCPU | SpikeGenerationGPU] = []
@@ -16,28 +14,21 @@ class SpikeLayer(torch.nn.Module):
     _spike_generation_gpu_setting_position: int
     _number_of_cpu_processes: int
     _number_of_spikes: int
-
-    _spikes: torch.Tensor | None = None
-    _store_spikes: bool
+    device: torch.device
 
     def __init__(
         self,
-        number_of_spikes: int = 1,
+        number_of_spikes: int = -1,
         number_of_cpu_processes: int = 1,
         device: torch.device | None = None,
-        default_dtype: torch.dtype | None = None,
-        store_spikes: bool = False,
     ) -> None:
         super().__init__()
 
         assert device is not None
-        assert default_dtype is not None
         self.device = device
-        self.default_dtype = default_dtype
 
         self._number_of_cpu_processes = number_of_cpu_processes
         self._number_of_spikes = number_of_spikes
-        self._store_spikes = store_spikes
 
         global_spike_generation_gpu_setting.append(torch.tensor([0]))
         global_spike_size.append(torch.tensor([0, 0, 0, 0]))
@@ -62,7 +53,6 @@ class SpikeLayer(torch.nn.Module):
         self,
         input: torch.Tensor,
         number_of_spikes: int | None = None,
-        store_spikes: bool | None = None,
     ) -> torch.Tensor:
 
         if number_of_spikes is None:
@@ -80,18 +70,7 @@ class SpikeLayer(torch.nn.Module):
             dtype=torch.int64,
         )
 
-        spikes = self.functional_spike_generation(input, parameter_list)
-
-        if (store_spikes is not None) and (store_spikes is True):
-            self._spikes = spikes.detach().clone()
-        elif (store_spikes is not None) and (store_spikes is False):
-            self._spikes = None
-        elif self._store_spikes is True:
-            self._spikes = spikes.detach().clone()
-        else:
-            self._spikes = None
-
-        return spikes
+        return self.functional_spike_generation(input, parameter_list)
 
 
 class FunctionalSpikeGeneration(torch.autograd.Function):

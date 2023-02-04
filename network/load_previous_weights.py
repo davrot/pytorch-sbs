@@ -3,9 +3,10 @@ import torch
 import glob
 import numpy as np
 
-from network.SbS import SbS
+from network.SbSLayer import SbSLayer
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
+import os
 
 
 def load_previous_weights(
@@ -14,7 +15,13 @@ def load_previous_weights(
     logging,
     device: torch.device,
     default_dtype: torch.dtype,
+    order_id: float | int | None = None,
 ) -> None:
+
+    if order_id is None:
+        post_fix: str = ""
+    else:
+        post_fix = f"_{order_id}"
 
     for id in range(0, len(network)):
 
@@ -22,14 +29,14 @@ def load_previous_weights(
         # SbS
         # #################################################
 
-        if isinstance(network[id], SbS) is True:
-            # Are there weights that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Weight_L" + str(id) + "_*.npy")
+        if isinstance(network[id], SbSLayer) is True:
+            filename_wilcard = os.path.join(
+                overload_path, f"Weight_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous weights files {overload_path}/Weight_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id].weights = torch.tensor(
@@ -45,13 +52,13 @@ def load_previous_weights(
             # Conv2d weights
             # #################################################
 
-            # Are there weights that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Weight_L" + str(id) + "_*.npy")
+            filename_wilcard = os.path.join(
+                overload_path, f"Weight_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous weights files {overload_path}/Weight_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id]._parameters["weight"].data = torch.tensor(
@@ -65,13 +72,13 @@ def load_previous_weights(
             # Conv2d bias
             # #################################################
 
-            # Are there biases that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Bias_L" + str(id) + "_*.npy")
+            filename_wilcard = os.path.join(
+                overload_path, f"Bias_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous weights files {overload_path}/Weight_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id]._parameters["bias"].data = torch.tensor(
@@ -87,13 +94,13 @@ def load_previous_weights(
             # Approximate Conv2d weights
             # #################################################
 
-            # Are there weights that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Weight_L" + str(id) + "_*.npy")
+            filename_wilcard = os.path.join(
+                overload_path, f"Weight_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous weights files {overload_path}/Weight_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id].weights.data = torch.tensor(
@@ -107,13 +114,13 @@ def load_previous_weights(
             # Approximate Conv2d bias
             # #################################################
 
-            # Are there biases that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Bias_L" + str(id) + "_*.npy")
+            filename_wilcard = os.path.join(
+                overload_path, f"Bias_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous weights files {overload_path}/Weight_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id].bias.data = torch.tensor(
@@ -127,13 +134,13 @@ def load_previous_weights(
         # SplitOnOffLayer
         # #################################################
         if isinstance(network[id], SplitOnOffLayer) is True:
-            # Are there weights that overwrite the initial weights?
-            file_to_load = glob.glob(overload_path + "/Mean_L" + str(id) + "_*.npy")
+            filename_wilcard = os.path.join(
+                overload_path, f"Mean_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
 
             if len(file_to_load) > 1:
-                raise Exception(
-                    f"Too many previous mean files {overload_path}/Mean_L{id}*.npy"
-                )
+                raise Exception(f"Too many previous mean files {filename_wilcard}")
 
             if len(file_to_load) == 1:
                 network[id].mean = torch.tensor(

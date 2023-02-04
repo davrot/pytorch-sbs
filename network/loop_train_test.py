@@ -3,7 +3,7 @@ import time
 from network.Parameter import Config
 from torch.utils.tensorboard import SummaryWriter
 
-from network.SbS import SbS
+from network.SbSLayer import SbSLayer
 from network.save_weight_and_bias import save_weight_and_bias
 from network.SbSReconstruction import SbSReconstruction
 
@@ -19,7 +19,7 @@ def add_weight_and_bias_to_histogram(
         # ################################################
         # Log the SbS Weights
         # ################################################
-        if isinstance(network[id], SbS) is True:
+        if isinstance(network[id], SbSLayer) is True:
             if network[id]._w_trainable is True:
 
                 try:
@@ -175,7 +175,7 @@ def forward_pass_train(
         .to(device=device)
     )
     for id in range(0, len(network)):
-        if isinstance(network[id], SbS) is True:
+        if isinstance(network[id], SbSLayer) is True:
             h_collection.append(network[id](h_collection[-1], labels))
         else:
             h_collection.append(network[id](h_collection[-1]))
@@ -203,7 +203,7 @@ def forward_pass_test(
     )
     for id in range(0, len(network)):
         if (cfg.extract_noisy_pictures is True) or (overwrite_number_of_spikes != -1):
-            if isinstance(network[id], SbS) is True:
+            if isinstance(network[id], SbSLayer) is True:
                 h_collection.append(
                     network[id](
                         h_collection[-1],
@@ -228,7 +228,7 @@ def run_optimizer(
     cfg: Config,
 ) -> None:
     for id in range(0, len(network)):
-        if isinstance(network[id], SbS) is True:
+        if isinstance(network[id], SbSLayer) is True:
             network[id].update_pre_care()
 
     for optimizer_item in optimizer:
@@ -236,7 +236,7 @@ def run_optimizer(
             optimizer_item.step()
 
     for id in range(0, len(network)):
-        if isinstance(network[id], SbS) is True:
+        if isinstance(network[id], SbSLayer) is True:
             network[id].update_after_care(
                 cfg.learning_parameters.learning_rate_threshold_w
                 / float(
@@ -288,11 +288,11 @@ def run_lr_scheduler(
 def deal_with_gradient_scale(epoch_id: int, mini_batch_number: int, network):
     if (epoch_id == 0) and (mini_batch_number == 0):
         for id in range(0, len(network)):
-            if isinstance(network[id], SbS) is True:
+            if isinstance(network[id], SbSLayer) is True:
                 network[id].after_batch(True)
     else:
         for id in range(0, len(network)):
-            if isinstance(network[id], SbS) is True:
+            if isinstance(network[id], SbSLayer) is True:
                 network[id].after_batch()
 
 
@@ -309,6 +309,7 @@ def loop_train(
     tb: SummaryWriter,
     lr_scheduler,
     last_test_performance: float,
+    order_id: float | int | None = None,
 ) -> tuple[float, float, float, float]:
 
     correct_in_minibatch: int = 0
@@ -529,7 +530,10 @@ def loop_train(
                 # Save the Weights and Biases
                 # ################################################
                 save_weight_and_bias(
-                    cfg=cfg, network=network, iteration_number=epoch_id
+                    cfg=cfg,
+                    network=network,
+                    iteration_number=epoch_id,
+                    order_id=order_id,
                 )
 
                 # ################################################

@@ -1,15 +1,15 @@
 import torch
 
-from network.SbS import SbS
+from network.SbSLayer import SbSLayer
 
 
 class SbSReconstruction(torch.nn.Module):
 
-    _the_sbs_layer: SbS
+    _the_sbs_layer: SbSLayer
 
     def __init__(
         self,
-        the_sbs_layer: SbS,
+        the_sbs_layer: SbSLayer,
     ) -> None:
         super().__init__()
 
