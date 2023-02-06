@@ -5,6 +5,8 @@ then
     exit 1
 fi
 
-rm -rf Log
+rm -rf noisy_picture_data
+rm -rf Log_*
+rm -rf Log*
 rm -rf Parameters
-rm *.txt
+rm -f *.txt
