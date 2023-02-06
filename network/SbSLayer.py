@@ -52,7 +52,9 @@ class SbSLayer(torch.nn.Module):
     _reduction_cooldown: float = 1.0
     _layer_id: int = -1
 
-    spike_full_layer_input_distribution: bool = False
+    _spike_full_layer_input_distribution: bool
+
+    _force_forward_h_dynamic_on_cpu: bool
 
     def __init__(
         self,
@@ -81,6 +83,10 @@ class SbSLayer(torch.nn.Module):
         layer_id: int = -1,
         cooldown_after_number_of_spikes: int = -1,
         reduction_cooldown: float = 1.0,
+        force_forward_h_dynamic_on_cpu: bool = True,
+        spike_full_layer_input_distribution: bool = False,
+        force_forward_spike_on_cpu: bool = False,
+        force_forward_spike_output_on_cpu: bool = False,
     ) -> None:
         super().__init__()
 
@@ -109,6 +115,8 @@ class SbSLayer(torch.nn.Module):
         self.reduction_cooldown = float(reduction_cooldown)
         self._layer_id = layer_id
         self._epsilon_xy_use = epsilon_xy_use
+        self._force_forward_h_dynamic_on_cpu = force_forward_h_dynamic_on_cpu
+        self._spike_full_layer_input_distribution = spike_full_layer_input_distribution
 
         assert len(input_size) == 2
         self._input_size = input_size
@@ -140,6 +148,8 @@ class SbSLayer(torch.nn.Module):
             number_of_spikes=self._number_of_spikes,
             number_of_cpu_processes=self._number_of_cpu_processes,
             device=self.device,
+            force_forward_spike_on_cpu=force_forward_spike_on_cpu,
+            force_forward_spike_output_on_cpu=force_forward_spike_output_on_cpu,
         )
 
         self.h_dynamic = HDynamicLayer(
@@ -152,6 +162,7 @@ class SbSLayer(torch.nn.Module):
             device=device,
             default_dtype=self.default_dtype,
             gpu_tuning_factor=gpu_tuning_factor,
+            force_forward_h_dynamic_on_cpu=self._force_forward_h_dynamic_on_cpu,
         )
 
         assert len(input_size) >= 2
@@ -168,10 +179,6 @@ class SbSLayer(torch.nn.Module):
             padding=self._padding,
             number_of_cpu_processes=number_of_cpu_processes,
         )
-
-        # TODO: TEST
-        if layer_id == 0:
-            self.spike_full_layer_input_distribution = True
 
         # ###############################################################
         # Initialize the weights
@@ -438,7 +445,7 @@ class SbSLayer(torch.nn.Module):
         else:
             assert self._epsilon_xy is None
 
-        if self.spike_full_layer_input_distribution is False:
+        if self._spike_full_layer_input_distribution is False:
             spike = self.spike_generator(input_convolved, int(self._number_of_spikes))
         else:
             input_shape = input.shape
@@ -457,7 +464,9 @@ class SbSLayer(torch.nn.Module):
                     (input_shape[0], input_shape[1], input_shape[2], input_shape[3])
                 )
             )
-            spike = self.spikes_sorter(spike_unsorted).to(device=input_convolved.device)
+            spike = self.spikes_sorter(spike_unsorted)
+            if self._force_forward_h_dynamic_on_cpu is False:
+                spike = spike.to(device=input_convolved.device)
 
         output = self.h_dynamic(
             input=input_convolved,

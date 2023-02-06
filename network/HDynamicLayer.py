@@ -21,6 +21,8 @@ class HDynamicLayer(torch.nn.Module):
     device: torch.device
     default_dtype: torch.dtype
 
+    _force_forward_h_dynamic_on_cpu: bool
+
     def __init__(
         self,
         output_size: list[int],
@@ -32,6 +34,7 @@ class HDynamicLayer(torch.nn.Module):
         device: torch.device | None = None,
         default_dtype: torch.dtype | None = None,
         gpu_tuning_factor: int = 5,
+        force_forward_h_dynamic_on_cpu: bool = False,
     ) -> None:
         super().__init__()
 
@@ -46,11 +49,14 @@ class HDynamicLayer(torch.nn.Module):
         self._output_size = output_size
         self._output_layer = bool(output_layer)
         self._local_learning = bool(local_learning)
+        self._force_forward_h_dynamic_on_cpu = force_forward_h_dynamic_on_cpu
 
         global_sbs_gpu_setting.append(torch.tensor([0]))
         global_sbs_size.append(torch.tensor([0, 0, 0, 0]))
 
-        if device == torch.device("cpu"):
+        if (device == torch.device("cpu")) or (
+            self._force_forward_h_dynamic_on_cpu is True
+        ):
             global_sbs_hdynamic_cpp.append(HDynamicCNNCPU())
         else:
             global_sbs_hdynamic_cpp.append(HDynamicCNNGPU())
@@ -146,17 +152,36 @@ class FunctionalSbS(torch.autograd.Function):
 
         number_of_spikes: int = int(spikes.shape[1])
 
-        if input.device == torch.device("cpu"):
-            hdyn_number_of_cpu_processes: int = int(parameter_list[0])
-        else:
-            hdyn_number_of_cpu_processes = -1
-
         output_size_0: int = int(parameter_list[1])
         output_size_1: int = int(parameter_list[2])
         gpu_tuning_factor: int = int(parameter_list[3])
 
         sbs_gpu_setting_position = int(parameter_list[4])
         sbs_hdynamic_cpp_position = int(parameter_list[5])
+
+        if (
+            isinstance(
+                global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position], HDynamicCNNCPU
+            )
+            is True
+        ):
+            are_we_on_a_cpu: bool = True
+            work_device: torch.device = torch.device("cpu")
+        else:
+            are_we_on_a_cpu = False
+            work_device = input.device
+
+        target_device: torch.device = input.device
+
+        if target_device == work_device:
+            data_is_on_the_same_device: bool = True
+        else:
+            data_is_on_the_same_device = False
+
+        if are_we_on_a_cpu is True:
+            hdyn_number_of_cpu_processes: int = int(parameter_list[0])
+        else:
+            hdyn_number_of_cpu_processes = -1
 
         # ###########################################################
         # H dynamic
@@ -169,7 +194,7 @@ class FunctionalSbS(torch.autograd.Function):
         # Make space for the results
         # ############################################
 
-        output = torch.empty(
+        output_work: torch.Tensor = torch.empty(
             (
                 int(input.shape[0]),
                 int(weights.shape[1]),
@@ -177,17 +202,43 @@ class FunctionalSbS(torch.autograd.Function):
                 output_size_1,
             ),
             dtype=input.dtype,
-            device=input.device,
+            device=work_device,
         )
 
-        assert output.is_contiguous() is True
+        assert output_work.is_contiguous() is True
         if epsilon_xy is not None:
             assert epsilon_xy.is_contiguous() is True
             assert epsilon_xy.ndim == 3
+            if data_is_on_the_same_device is False:
+                epsilon_xy_work = epsilon_xy.to(work_device)
+            else:
+                epsilon_xy_work = epsilon_xy
+        else:
+            epsilon_xy_work = None
+
         assert epsilon_t_0.is_contiguous() is True
+        if data_is_on_the_same_device is False:
+            epsilon_t_0_work = epsilon_t_0.to(work_device)
+        else:
+            epsilon_t_0_work = epsilon_t_0
+
         assert weights.is_contiguous() is True
+        if data_is_on_the_same_device is False:
+            weights_work = weights.to(work_device)
+        else:
+            weights_work = weights
+
         assert spikes.is_contiguous() is True
+        if data_is_on_the_same_device is False:
+            spikes_work = spikes.to(work_device)
+        else:
+            spikes_work = spikes
+
         assert h_initial.is_contiguous() is True
+        if data_is_on_the_same_device is False:
+            h_initial_work = h_initial.to(work_device)
+        else:
+            h_initial_work = h_initial
 
         assert weights.ndim == 2
         assert h_initial.ndim == 1
@@ -196,32 +247,32 @@ class FunctionalSbS(torch.autograd.Function):
 
         sbs_size = global_sbs_size[sbs_gpu_setting_position].clone()
 
-        if input.device != torch.device("cpu"):
+        if are_we_on_a_cpu is False:
             if (
                 (sbs_profile.numel() == 1)
-                or (sbs_size[0] != int(output.shape[0]))
-                or (sbs_size[1] != int(output.shape[1]))
-                or (sbs_size[2] != int(output.shape[2]))
-                or (sbs_size[3] != int(output.shape[3]))
+                or (sbs_size[0] != int(output_work.shape[0]))
+                or (sbs_size[1] != int(output_work.shape[1]))
+                or (sbs_size[2] != int(output_work.shape[2]))
+                or (sbs_size[3] != int(output_work.shape[3]))
             ):
                 sbs_profile = torch.zeros(
                     (14, 7), dtype=torch.int64, device=torch.device("cpu")
                 )
 
                 global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position].gpu_occupancy_export(
-                    int(output.shape[2]),
-                    int(output.shape[3]),
-                    int(output.shape[0]),
-                    int(output.shape[1]),
+                    int(output_work.shape[2]),
+                    int(output_work.shape[3]),
+                    int(output_work.shape[0]),
+                    int(output_work.shape[1]),
                     sbs_profile.data_ptr(),
                     int(sbs_profile.shape[0]),
                     int(sbs_profile.shape[1]),
                 )
                 global_sbs_gpu_setting[sbs_gpu_setting_position] = sbs_profile.clone()
-                sbs_size[0] = int(output.shape[0])
-                sbs_size[1] = int(output.shape[1])
-                sbs_size[2] = int(output.shape[2])
-                sbs_size[3] = int(output.shape[3])
+                sbs_size[0] = int(output_work.shape[0])
+                sbs_size[1] = int(output_work.shape[1])
+                sbs_size[2] = int(output_work.shape[2])
+                sbs_size[3] = int(output_work.shape[3])
                 global_sbs_size[sbs_gpu_setting_position] = sbs_size.clone()
 
             else:
@@ -232,32 +283,41 @@ class FunctionalSbS(torch.autograd.Function):
                 )
 
         global_sbs_hdynamic_cpp[sbs_hdynamic_cpp_position].update(
-            output.data_ptr(),
-            int(output.shape[0]),
-            int(output.shape[1]),
-            int(output.shape[2]),
-            int(output.shape[3]),
-            epsilon_xy.data_ptr() if epsilon_xy is not None else int(0),
-            int(epsilon_xy.shape[0]) if epsilon_xy is not None else int(0),
-            int(epsilon_xy.shape[1]) if epsilon_xy is not None else int(0),
-            int(epsilon_xy.shape[2]) if epsilon_xy is not None else int(0),
-            epsilon_t_0.data_ptr(),
-            int(epsilon_t_0.shape[0]),
-            weights.data_ptr(),
-            int(weights.shape[0]),
-            int(weights.shape[1]),
-            spikes.data_ptr(),
-            int(spikes.shape[0]),
-            int(spikes.shape[1]),
-            int(spikes.shape[2]),
-            int(spikes.shape[3]),
-            h_initial.data_ptr(),
-            int(h_initial.shape[0]),
+            output_work.data_ptr(),
+            int(output_work.shape[0]),
+            int(output_work.shape[1]),
+            int(output_work.shape[2]),
+            int(output_work.shape[3]),
+            epsilon_xy_work.data_ptr() if epsilon_xy_work is not None else int(0),
+            int(epsilon_xy_work.shape[0]) if epsilon_xy_work is not None else int(0),
+            int(epsilon_xy_work.shape[1]) if epsilon_xy_work is not None else int(0),
+            int(epsilon_xy_work.shape[2]) if epsilon_xy_work is not None else int(0),
+            epsilon_t_0_work.data_ptr(),
+            int(epsilon_t_0_work.shape[0]),
+            weights_work.data_ptr(),
+            int(weights_work.shape[0]),
+            int(weights_work.shape[1]),
+            spikes_work.data_ptr(),
+            int(spikes_work.shape[0]),
+            int(spikes_work.shape[1]),
+            int(spikes_work.shape[2]),
+            int(spikes_work.shape[3]),
+            h_initial_work.data_ptr(),
+            int(h_initial_work.shape[0]),
             hdyn_number_of_cpu_processes,
             float(forgetting_offset.cpu().item()),
             int(gpu_tuning_factor),
         )
 
+        if data_is_on_the_same_device is False:
+            output = output_work.to(target_device)
+        else:
+            output = output_work
+
+        # print(output)
+        # print(output.sum(dim=1))
+        # print(output.sum(dim=1).shape)
+        # exit()
         # ###########################################################
         # Save the necessary data for the backward pass
         # ###########################################################

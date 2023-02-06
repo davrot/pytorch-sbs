@@ -120,6 +120,12 @@ def build_network(
                 cfg.learning_parameters.sbs_skip_gradient_calculation[0]
             )
 
+        spike_full_layer_input_distribution: bool = False
+        if len(cfg.spike_full_layer_input_distribution) > layer_id:
+            spike_full_layer_input_distribution = (
+                cfg.spike_full_layer_input_distribution[layer_id]
+            )
+
         # #############################################################
         # SbS layer:
         # #############################################################
@@ -138,7 +144,10 @@ def build_network(
             assert number_of_spikes > 0
 
             logging.info(
-                f"Layer: {layer_id} -> SbS Layer with {number_of_spikes} spikes"
+                (
+                    f"Layer: {layer_id} -> SbS Layer with {number_of_spikes} spikes "
+                    f"-- draw spike from full layer: {spike_full_layer_input_distribution}"
+                )
             )
             is_pooling_layer: bool = False
             if cfg.network_structure.layer_type[layer_id].upper().find("POOLING") != -1:
@@ -169,6 +178,8 @@ def build_network(
                     layer_id=layer_id,
                     cooldown_after_number_of_spikes=cfg.cooldown_after_number_of_spikes,
                     reduction_cooldown=cfg.reduction_cooldown,
+                    force_forward_h_dynamic_on_cpu=cfg.force_forward_h_dynamic_on_cpu,
+                    spike_full_layer_input_distribution=spike_full_layer_input_distribution,
                 )
             )
             # Adding the x,y output dimensions

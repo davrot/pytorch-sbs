@@ -142,6 +142,9 @@ class Config:
     epsilon_0: float = field(default=1.0)
     forgetting_offset: float = field(default=-1.0)
 
+    force_forward_h_dynamic_on_cpu: bool = field(default=True)
+    spike_full_layer_input_distribution: list[bool] = field(default_factory=list)
+
     def __post_init__(self) -> None:
         """Post init determines the number of cores.
         Creates the required directory and gives us an optimized
