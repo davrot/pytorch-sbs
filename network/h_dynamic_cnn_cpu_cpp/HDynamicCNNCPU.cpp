@@ -3,11 +3,12 @@
 #include <omp.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <chrono>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 
+// #define DEBUGSHOWTIMEGLOBAL
 
 HDynamicCNNCPU::HDynamicCNNCPU()
 {
@@ -113,6 +114,11 @@ void HDynamicCNNCPU::entrypoint(
     assert((number_of_processes > 0));
     omp_set_num_threads(number_of_processes);
 
+#ifdef DEBUGSHOWTIMEGLOBAL
+    using TIME_resolution = std::chrono::nanoseconds;
+    auto TIME_start = std::chrono::high_resolution_clock::now();
+#endif
+
 #pragma omp parallel for
     for (size_t pattern_id = 0; pattern_id < number_of_pattern; pattern_id++)
     {
@@ -140,6 +146,12 @@ void HDynamicCNNCPU::entrypoint(
             forgetting_offset_local,
             pattern_id);
     }
+
+#ifdef DEBUGSHOWTIMEGLOBAL
+    auto TIME_end = std::chrono::high_resolution_clock::now();
+    float TIME_measured = TIME_resolution(TIME_end - TIME_start).count();
+    std::cout << "Time used : " << TIME_measured/(1000.0*1000.0) << "ms" << std::endl;
+#endif
 
     return;
 };
@@ -259,72 +271,74 @@ void HDynamicCNNCPU::update_one_ip(
 
         spike = input_pointer + counter_spike * input_dim_c1;
 
-        if (*spike >= 0)
+        if (*spike < 0)
         {
-            if (epsilon_xy_dim_c0 != 0)
+            break;
+        }
+        if (epsilon_xy_dim_c0 != 0)
+        {
+            epsilon_subsegment =
+                epsilon_xy_pointer[*spike * epsilon_xy_dim_c0] * epsilon_t_pointer[counter_spike];
+        }
+        else
+        {
+            epsilon_subsegment = epsilon_t_pointer[counter_spike];
+        }
+
+        w_ptr = weights_pointer + *spike * weights_dim_c0;
+
+        memcpy(h_temp, h_subsegment, sizeof(float) * h_dim);
+
+#pragma omp simd
+        for (size_t counter = 0; counter < h_dim; counter++)
+        {
+            h_temp[counter] *= w_ptr[counter];
+        }
+
+        h_temp_sum = 0.0;
+#pragma omp simd reduction(+ : h_temp_sum)
+        for (size_t counter = 0; counter < h_dim; counter++)
+        {
+            h_temp_sum += h_temp[counter];
+        }
+
+        if (h_temp_sum > 1E-10)
+        {
+            temp_value = epsilon_scale * epsilon_subsegment / h_temp_sum;
+
+#pragma omp simd
+            for (size_t counter = 0; counter < h_dim; counter++)
             {
-                epsilon_subsegment =
-                    epsilon_xy_pointer[*spike * epsilon_xy_dim_c0] * epsilon_t_pointer[counter_spike];
+                h_temp[counter] *= temp_value;
+            }
+
+#pragma omp simd
+            for (size_t counter = 0; counter < h_dim; counter++)
+            {
+                h_subsegment[counter] += h_temp[counter];
+            }
+
+            if (forgetting_offset_local > 0.0)
+            {
+                temp_value =
+                    epsilon_scale * epsilon_subsegment * forgetting_offset_local;
+
+#pragma omp simd
+                for (size_t counter = 0; counter < h_dim; counter++)
+                {
+                    h_subsegment[counter] += temp_value;
+                }
+
+                epsilon_scale *=
+                    1.0 + epsilon_subsegment * (1.0 + forgetting_offset);
             }
             else
             {
-                epsilon_subsegment = epsilon_t_pointer[counter_spike];
-            }
-
-            w_ptr = weights_pointer + *spike * weights_dim_c0;
-
-            memcpy(h_temp, h_subsegment, sizeof(float) * h_dim);
-
-#pragma omp simd
-            for (size_t counter = 0; counter < h_dim; counter++)
-            {
-                h_temp[counter] *= w_ptr[counter];
-            }
-
-            h_temp_sum = 0.0;
-#pragma omp simd reduction(+ : h_temp_sum)
-            for (size_t counter = 0; counter < h_dim; counter++)
-            {
-                h_temp_sum += h_temp[counter];
-            }
-
-            if (h_temp_sum > 1E-10)
-            {
-                temp_value = epsilon_scale * epsilon_subsegment / h_temp_sum;
-
-#pragma omp simd
-                for (size_t counter = 0; counter < h_dim; counter++)
-                {
-                    h_temp[counter] *= temp_value;
-                }
-
-#pragma omp simd
-                for (size_t counter = 0; counter < h_dim; counter++)
-                {
-                    h_subsegment[counter] += h_temp[counter];
-                }
-
-                if (forgetting_offset_local > 0.0)
-                {
-                    temp_value =
-                        epsilon_scale * epsilon_subsegment * forgetting_offset_local;
-
-#pragma omp simd
-                    for (size_t counter = 0; counter < h_dim; counter++)
-                    {
-                        h_subsegment[counter] += temp_value;
-                    }
-
-                    epsilon_scale *=
-                        1.0 + epsilon_subsegment * (1.0 + forgetting_offset);
-                }
-                else
-                {
-                    epsilon_scale *= 1.0 + epsilon_subsegment * 1.0;
-                }
+                epsilon_scale *= 1.0 + epsilon_subsegment;
             }
         }
     }
+
 
     temp_value = 1.0 / epsilon_scale;
 #pragma omp simd
