@@ -1,47 +1,47 @@
 import os
-
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-import matplotlib.pyplot as plt
+
+which_scalar = "Test Error"
 
 from tensorboard.backend.event_processing import event_accumulator
 import numpy as np
-import json
-from jsmin import jsmin
 import glob
 
-# -------------------------------
+log_paths: str = "Log*"
+log_paths_list = glob.glob(log_paths)
+assert len(log_paths_list) > 0
 
-filename:str = "def.json"
-with open(filename) as json_file:
-    minified = jsmin(json_file.read())
-data = json.loads(minified)
+for path in log_paths_list:
+    print(path)
+    temp = path.split("_")
+    if len(temp) == 2:
+        parameter:str | None = temp[-1]
+    else: 
+        parameter = None
 
+    # ----------------------
+    temp = glob.glob(path)
+    assert len(temp) == 1
 
+    acc = event_accumulator.EventAccumulator(path)
+    acc.Reload()
 
-# -------------------------------
+    # Check if the requested scalar exists 
+    available_scalar = acc.Tags()["scalars"]
+    # available_histograms = acc.Tags()["histograms"]
+    available_scalar.index(which_scalar)
 
+    te = acc.Scalars(which_scalar)
 
-path_runs: str = "./Log/*"  
+    np_temp = np.zeros((len(te), 2))
 
-temp = glob.glob(path_runs)
-assert len(temp) == 1
-path = temp[0]
+    for id in range(0, len(te)):
+        np_temp[id, 0] = te[id][1]
+        np_temp[id, 1] = te[id][2]
+    print(np_temp)
 
-
-acc = event_accumulator.EventAccumulator(path)
-acc.Reload()
-
-available_scalar = acc.Tags()["scalars"]
-available_histograms = acc.Tags()["histograms"]
-
-which_scalar = "Test Error"
-te = acc.Scalars(which_scalar)
-
-temp = []
-for te_item in te:
-    temp.append((te_item[1], te_item[2]))
-temp = np.array(temp)
-
-print(temp)
-np.save(f"test_error.npy", temp)
+    if parameter is not None:
+        np.save(f"result_{parameter}.npy", np_temp)
+    else:
+        np.save(f"result.npy", np_temp)
 

@@ -30,8 +30,10 @@ from network.loop_train_test import (
     run_lr_scheduler,
     loop_test_reconstruction,
 )
+
 from network.SbSReconstruction import SbSReconstruction
 from network.InputSpikeImage import InputSpikeImage
+from network.SbSLayer import SbSLayer
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -155,6 +157,8 @@ if order_id is not None:
     if isinstance(network[0], InputSpikeImage) is True:
         network[0].number_of_spikes = number_of_spikes_in_input_layer
 
+    if isinstance(network[0], SbSLayer) is True:
+        network[0]._number_of_spikes = number_of_spikes_in_input_layer
 
 last_test_performance: float = -1.0
 with torch.no_grad():
