@@ -87,6 +87,8 @@ class SbSLayer(torch.nn.Module):
         spike_full_layer_input_distribution: bool = False,
         force_forward_spike_on_cpu: bool = False,
         force_forward_spike_output_on_cpu: bool = False,
+        local_learning: bool = False,
+        output_layer: bool = False,
     ) -> None:
         super().__init__()
 
@@ -117,6 +119,8 @@ class SbSLayer(torch.nn.Module):
         self._epsilon_xy_use = epsilon_xy_use
         self._force_forward_h_dynamic_on_cpu = force_forward_h_dynamic_on_cpu
         self._spike_full_layer_input_distribution = spike_full_layer_input_distribution
+        self._local_learning = local_learning
+        self._output_layer = output_layer
 
         assert len(input_size) == 2
         self._input_size = input_size

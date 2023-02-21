@@ -15,6 +15,8 @@ class DatasetMaster(torch.utils.data.Dataset, ABC):
     initial_size: list[int]
     channel_size: int
 
+    alpha: float
+
     # Initialize
     def __init__(
         self,

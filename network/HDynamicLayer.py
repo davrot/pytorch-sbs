@@ -443,7 +443,6 @@ class FunctionalSbS(torch.autograd.Function):
             )
 
         elif (parameter_output_layer is True) and (parameter_local_learning is True):
-
             target_one_hot: torch.Tensor = torch.zeros(
                 (
                     labels.shape[0],

@@ -39,7 +39,8 @@ def build_lr_scheduler(
             ):
                 lr_scheduler_list.append(
                     torch.optim.lr_scheduler.ReduceLROnPlateau(
-                        optimizer[id_optimizer],eps=1e-14,
+                        optimizer[id_optimizer],
+                        eps=1e-14,
                     )
                 )
             else:

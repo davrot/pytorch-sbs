@@ -4,6 +4,7 @@ from network.Parameter import Config
 
 import numpy as np
 from network.SbSLayer import SbSLayer
+from network.NNMFLayer import NNMFLayer
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
 
@@ -28,6 +29,21 @@ def save_weight_and_bias(
         # ################################################
 
         if isinstance(network[id], SbSLayer) is True:
+            if network[id]._w_trainable is True:
+
+                np.save(
+                    os.path.join(
+                        cfg.weight_path,
+                        f"Weight_L{id}_S{iteration_number}{post_fix}.npy",
+                    ),
+                    network[id].weights.detach().cpu().numpy(),
+                )
+
+        # ################################################
+        # Save the NNMF Weights
+        # ################################################
+
+        if isinstance(network[id], NNMFLayer) is True:
             if network[id]._w_trainable is True:
 
                 np.save(
@@ -88,9 +104,10 @@ def save_weight_and_bias(
 
         if isinstance(network[id], SplitOnOffLayer) is True:
 
-            np.save(
-                os.path.join(
-                    cfg.weight_path, f"Mean_L{id}_S{iteration_number}{post_fix}.npy"
-                ),
-                network[id].mean.detach().cpu().numpy(),
-            )
+            if network[id].mean is not None:
+                np.save(
+                    os.path.join(
+                        cfg.weight_path, f"Mean_L{id}_S{iteration_number}{post_fix}.npy"
+                    ),
+                    network[id].mean.detach().cpu().numpy(),
+                )

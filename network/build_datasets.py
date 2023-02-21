@@ -6,6 +6,11 @@ from network.Dataset import (
     DatasetMNIST,
     DatasetFashionMNIST,
 )
+from network.DatasetMix import (
+    DatasetCIFARMix,
+    DatasetMNISTMix,
+    DatasetFashionMNISTMix,
+)
 from network.Parameter import Config
 
 
@@ -40,6 +45,27 @@ def build_datasets(
             train=True, path_pattern=cfg.data_path, path_label=cfg.data_path
         )
         the_dataset_test = DatasetFashionMNIST(
+            train=False, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+    elif cfg.data_mode == "MIX_CIFAR10":
+        the_dataset_train = DatasetCIFARMix(
+            train=True, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+        the_dataset_test = DatasetCIFARMix(
+            train=False, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+    elif cfg.data_mode == "MIX_MNIST":
+        the_dataset_train = DatasetMNISTMix(
+            train=True, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+        the_dataset_test = DatasetMNISTMix(
+            train=False, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+    elif cfg.data_mode == "MIX_MNIST_FASHION":
+        the_dataset_train = DatasetFashionMNISTMix(
+            train=True, path_pattern=cfg.data_path, path_label=cfg.data_path
+        )
+        the_dataset_test = DatasetFashionMNISTMix(
             train=False, path_pattern=cfg.data_path, path_label=cfg.data_path
         )
     else:

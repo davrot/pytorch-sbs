@@ -51,7 +51,13 @@ class InputSpikeImage(torch.nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
 
         if self.number_of_spikes < 1:
-            return input
+            output = input
+            output = output.type(dtype=input.dtype)
+            if self._normalize is True:
+                output = output * output.shape[-1] * output.shape[-2] * output.shape[-3]  / output.sum(dim=-1, keepdim=True).sum(
+                    dim=-2, keepdim=True
+                ).sum(dim=-3, keepdim=True)
+            return output
 
         input_shape: list[int] = [
             int(input.shape[0]),
@@ -95,9 +101,10 @@ class InputSpikeImage(torch.nn.Module):
                 )
             )
 
+        output = output.type(dtype=input_work.dtype)
+
         if self._normalize is True:
-            output = output.type(dtype=input_work.dtype)
-            output = output / output.sum(dim=-1, keepdim=True).sum(
+            output = output * output.shape[-1] * output.shape[-2] * output.shape[-3]  / output.sum(dim=-1, keepdim=True).sum(
                 dim=-2, keepdim=True
             ).sum(dim=-3, keepdim=True)
 

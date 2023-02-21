@@ -44,7 +44,7 @@ class LearningParameters:
     overload_path: str = field(default="Previous")
 
     weight_noise_range: list[float] = field(default_factory=list)
-    eps_xy_intitial: float = field(default=0.1)
+    eps_xy_intitial: float = field(default=1.0)
 
     disable_scale_grade: bool = field(default=False)
     kepp_last_grad_scale: bool = field(default=True)
@@ -54,7 +54,6 @@ class LearningParameters:
     adapt_learning_rate_after_minibatch: bool = field(default=True)
 
     w_trainable: list[bool] = field(default_factory=list)
-
 
 @dataclass
 class Augmentation:

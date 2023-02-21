@@ -4,6 +4,7 @@ import torch
 from network.calculate_output_size import calculate_output_size
 from network.Parameter import Config
 from network.SbSLayer import SbSLayer
+from network.NNMFLayer import NNMFLayer
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
 from network.SbSReconstruction import SbSReconstruction
@@ -153,6 +154,14 @@ def build_network(
             if cfg.network_structure.layer_type[layer_id].upper().find("POOLING") != -1:
                 is_pooling_layer = True
 
+            local_learning = False
+            if cfg.network_structure.layer_type[layer_id].upper().find("LOCAL") != -1:
+                local_learning = True
+
+            output_layer = False
+            if layer_id == len(cfg.network_structure.layer_type) - 1:
+                output_layer = True
+
             network.append(
                 SbSLayer(
                     number_of_input_neurons=in_channels,
@@ -180,18 +189,12 @@ def build_network(
                     reduction_cooldown=cfg.reduction_cooldown,
                     force_forward_h_dynamic_on_cpu=cfg.force_forward_h_dynamic_on_cpu,
                     spike_full_layer_input_distribution=spike_full_layer_input_distribution,
+                    local_learning=local_learning,
+                    output_layer=output_layer,
                 )
             )
             # Adding the x,y output dimensions
             input_size.append(network[-1]._output_size.tolist())
-
-            network[-1]._output_layer = False
-            if layer_id == len(cfg.network_structure.layer_type) - 1:
-                network[-1]._output_layer = True
-
-            network[-1]._local_learning = False
-            if cfg.network_structure.layer_type[layer_id].upper().find("LOCAL") != -1:
-                network[-1]._local_learning = True
 
         elif (
             cfg.network_structure.layer_type[layer_id]
@@ -276,6 +279,8 @@ def build_network(
         ):
             logging.info(f"Layer: {layer_id} -> RELU Layer")
             network.append(torch.nn.ReLU())
+            network[-1]._w_trainable = False
+
             input_size.append(input_size[-1])
 
         # #############################################################
@@ -295,6 +300,8 @@ def build_network(
                     dilation=(int(dilation[0]), int(dilation[1])),
                 )
             )
+
+            network[-1]._w_trainable = False
 
             # Calculate the x,y output dimensions
             input_size_temp = calculate_output_size(
@@ -323,6 +330,9 @@ def build_network(
                     padding=(int(padding[0]), int(padding[1])),
                 )
             )
+
+            network[-1]._w_trainable = False
+
             # Calculate the x,y output dimensions
             input_size_temp = calculate_output_size(
                 value=input_size[-1],
@@ -405,7 +415,66 @@ def build_network(
                 )
             )
 
+            network[-1]._w_trainable = False
+
             input_size.append(input_size[-1])
+
+        # #############################################################
+        # NNMF:
+        # #############################################################
+
+        elif (
+            cfg.network_structure.layer_type[layer_id].upper().startswith("NNMF")
+            is True
+        ):
+
+            assert in_channels > 0
+            assert out_channels > 0
+
+            number_of_iterations: int = -1
+            if len(cfg.number_of_spikes) > layer_id:
+                number_of_iterations = cfg.number_of_spikes[layer_id]
+            elif len(cfg.number_of_spikes) == 1:
+                number_of_iterations = cfg.number_of_spikes[0]
+
+            assert number_of_iterations > 0
+
+            logging.info(
+                (
+                    f"Layer: {layer_id} -> NNMF Layer with {number_of_iterations} iterations "
+                )
+            )
+
+            local_learning = False
+            if cfg.network_structure.layer_type[layer_id].upper().find("LOCAL") != -1:
+                local_learning = True
+
+            output_layer = False
+            if layer_id == len(cfg.network_structure.layer_type) - 1:
+                output_layer = True
+
+            network.append(
+                NNMFLayer(
+                    number_of_input_neurons=in_channels,
+                    number_of_neurons=out_channels,
+                    input_size=input_size[-1],
+                    forward_kernel_size=kernel_size,
+                    number_of_iterations=number_of_iterations,
+                    epsilon_0=cfg.epsilon_0,
+                    weight_noise_range=weight_noise_range,
+                    strides=strides,
+                    dilation=dilation,
+                    padding=padding,
+                    w_trainable=w_trainable,
+                    device=device,
+                    default_dtype=default_dtype,
+                    layer_id=layer_id,
+                    local_learning=local_learning,
+                    output_layer=output_layer,
+                )
+            )
+            # Adding the x,y output dimensions
+            input_size.append(network[-1]._output_size.tolist())
 
         # #############################################################
         # Failure becaue we didn't found the selection of layer

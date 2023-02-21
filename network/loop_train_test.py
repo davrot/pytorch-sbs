@@ -4,6 +4,7 @@ from network.Parameter import Config
 from torch.utils.tensorboard import SummaryWriter
 
 from network.SbSLayer import SbSLayer
+from network.NNMFLayer import NNMFLayer
 from network.save_weight_and_bias import save_weight_and_bias
 from network.SbSReconstruction import SbSReconstruction
 
@@ -19,7 +20,9 @@ def add_weight_and_bias_to_histogram(
         # ################################################
         # Log the SbS Weights
         # ################################################
-        if isinstance(network[id], SbSLayer) is True:
+        if (isinstance(network[id], SbSLayer) is True) or (
+            isinstance(network[id], NNMFLayer) is True
+        ):
             if network[id]._w_trainable is True:
 
                 try:
@@ -228,7 +231,9 @@ def run_optimizer(
     cfg: Config,
 ) -> None:
     for id in range(0, len(network)):
-        if isinstance(network[id], SbSLayer) is True:
+        if (isinstance(network[id], SbSLayer) is True) or (
+            isinstance(network[id], NNMFLayer) is True
+        ):
             network[id].update_pre_care()
 
     for optimizer_item in optimizer:
@@ -236,7 +241,9 @@ def run_optimizer(
             optimizer_item.step()
 
     for id in range(0, len(network)):
-        if isinstance(network[id], SbSLayer) is True:
+        if (isinstance(network[id], SbSLayer) is True) or (
+            isinstance(network[id], NNMFLayer) is True
+        ):
             network[id].update_after_care(
                 cfg.learning_parameters.learning_rate_threshold_w
                 / float(
@@ -616,6 +623,94 @@ def loop_test(
         tb.flush()
 
     return performance
+
+
+def loop_test_mix(
+    epoch_id: int,
+    cfg: Config,
+    network: torch.nn.modules.container.Sequential,
+    my_loader_test: torch.utils.data.dataloader.DataLoader,
+    the_dataset_test,
+    device: torch.device,
+    default_dtype: torch.dtype,
+    logging,
+    tb: SummaryWriter | None,
+    overwrite_number_of_spikes: int = -1,
+) -> tuple[float, float]:
+
+    test_correct_a_0: int = 0
+    test_correct_a_1: int = 0
+    test_correct_b_0: int = 0
+    test_correct_b_1: int = 0
+
+    test_count: int = 0
+    test_complete: int = the_dataset_test.__len__()
+
+    logging.info("")
+    logging.info("Testing:")
+    mini_batch_id: int = 0
+
+    for h_x, h_x_labels in my_loader_test:
+        assert len(h_x_labels) == 2
+        label_a = h_x_labels[0]
+        label_b = h_x_labels[1]
+        assert label_a.shape[0] == label_b.shape[0]
+        assert h_x.shape[0] == label_b.shape[0]
+
+        time_0 = time.perf_counter()
+
+        h_collection = forward_pass_test(
+            input=h_x,
+            labels=label_a,
+            the_dataset_test=the_dataset_test,
+            cfg=cfg,
+            network=network,
+            device=device,
+            default_dtype=default_dtype,
+            mini_batch_id=mini_batch_id,
+            overwrite_number_of_spikes=overwrite_number_of_spikes,
+        )
+        h_h: torch.Tensor = h_collection[-1].detach().clone().cpu()
+
+        # -------------
+
+        for id in range(0, h_h.shape[0]):
+            temp = h_h[id, ...].squeeze().argsort(descending=True)
+            test_correct_a_0 += float(label_a[id] == int(temp[0]))
+            test_correct_a_1 += float(label_a[id] == int(temp[1]))
+            test_correct_b_0 += float(label_b[id] == int(temp[0]))
+            test_correct_b_1 += float(label_b[id] == int(temp[1]))
+
+        test_count += h_h.shape[0]
+        performance_a_0: float = 100.0 * test_correct_a_0 / test_count
+        performance_a_1: float = 100.0 * test_correct_a_1 / test_count
+        performance_b_0: float = 100.0 * test_correct_b_0 / test_count
+        performance_b_1: float = 100.0 * test_correct_b_1 / test_count
+        time_1 = time.perf_counter()
+        time_measure_a = time_1 - time_0
+
+        logging.info(
+            (
+                f"\t\t{test_count} of {test_complete}"
+                f" with {performance_a_0/100:^6.2%}, "
+                f"{performance_a_1/100:^6.2%}, "
+                f"{performance_b_0/100:^6.2%}, "
+                f"{performance_b_1/100:^6.2%} \t "
+                f"Time used: {time_measure_a:^6.2f}sec"
+            )
+        )
+        mini_batch_id += 1
+
+    logging.info("")
+
+    if tb is not None:
+        tb.add_scalar("Test Error A0", 100.0 - performance_a_0, epoch_id)
+        tb.add_scalar("Test Error A1", 100.0 - performance_a_1, epoch_id)
+        tb.add_scalar("Test Error B0", 100.0 - performance_b_0, epoch_id)
+        tb.add_scalar("Test Error B1", 100.0 - performance_b_1, epoch_id)
+        tb.flush()
+
+    return performance_a_0, performance_a_1, performance_b_0, performance_b_1
 
 
 def loop_test_reconstruction(

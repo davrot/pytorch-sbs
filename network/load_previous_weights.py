@@ -4,6 +4,8 @@ import glob
 import numpy as np
 
 from network.SbSLayer import SbSLayer
+from network.NNMFLayer import NNMFLayer
+
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
 import os
@@ -30,6 +32,23 @@ def load_previous_weights(
         # #################################################
 
         if isinstance(network[id], SbSLayer) is True:
+            filename_wilcard = os.path.join(
+                overload_path, f"Weight_L{id}_*{post_fix}.npy"
+            )
+            file_to_load = glob.glob(filename_wilcard)
+
+            if len(file_to_load) > 1:
+                raise Exception(f"Too many previous weights files {filename_wilcard}")
+
+            if len(file_to_load) == 1:
+                network[id].weights = torch.tensor(
+                    np.load(file_to_load[0]),
+                    dtype=default_dtype,
+                    device=device,
+                )
+                logging.info(f"Weights file used for layer {id} : {file_to_load[0]}")
+
+        if isinstance(network[id], NNMFLayer) is True:
             filename_wilcard = os.path.join(
                 overload_path, f"Weight_L{id}_*{post_fix}.npy"
             )
