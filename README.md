@@ -56,8 +56,11 @@ David Rotermund, Klaus R. Pawelzik
 https://doi.org/10.1101/500280  
 
 **Biologically plausible learning in a deep recurrent spiking network**
-David Rotermund, Klaus R. Pawelzik
+David Rotermund, Klaus R. Pawelzik  
 https://doi.org/10.1101/613471  
 
+**Accelerating Spike-by-Spike Neural Networks on FPGA With Hybrid Custom Floating-Point and Logarithmic Dot-Product Approximation**  
+Yarib Nevarez, David Rotermund, Klaus R. Pawelzik, Alberto Garcia-Ortiz  
+https://doi.org/10.1109/access.2021.3085216  
 
 
