@@ -49,6 +49,7 @@ https://doi.org/10.1038/44565
 
 **Algorithms for non-negative matrix factorization.**  
 Lee, Daniel, and H. Sebastian Seung. Advances in neural information processing systems 13 (2000).  
+https://proceedings.neurips.cc/paper/2000/hash/f9d1152547c0bde01830b7e8bd60024c-Abstract.html  
 
 ## SbS
 **Massively Parallel FPGA Hardware for Spike-By-Spike Networks**  
