@@ -38,3 +38,13 @@ network.json : Describes the network architecture
 def.json : Controlls the other parameters 
 
 If you want to load existing weights, just put them in a sub-folder called Previous
+
+# Other relevant scientific papers
+
+## NNMF
+
+**Learning the parts of objects by non-negative matrix factorization**
+Lee, Daniel D., and H. Sebastian Seung. Nature 401.6755 (1999): 788-791.
+
+**Algorithms for non-negative matrix factorization.**
+Lee, Daniel, and H. Sebastian Seung. Advances in neural information processing systems 13 (2000).
