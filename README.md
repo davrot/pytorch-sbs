@@ -43,8 +43,9 @@ If you want to load existing weights, just put them in a sub-folder called Previ
 
 ## NNMF
 
-**Learning the parts of objects by non-negative matrix factorization**
-Lee, Daniel D., and H. Sebastian Seung. Nature 401.6755 (1999): 788-791.
+**Learning the parts of objects by non-negative matrix factorization**  
+Lee, Daniel D., and H. Sebastian Seung. Nature 401.6755 (1999): 788-791.  
+https://doi.org/10.1038/44565  
 
-**Algorithms for non-negative matrix factorization.**
-Lee, Daniel, and H. Sebastian Seung. Advances in neural information processing systems 13 (2000).
+**Algorithms for non-negative matrix factorization.**  
+Lee, Daniel, and H. Sebastian Seung. Advances in neural information processing systems 13 (2000).  
