@@ -49,3 +49,15 @@ https://doi.org/10.1038/44565
 
 **Algorithms for non-negative matrix factorization.**  
 Lee, Daniel, and H. Sebastian Seung. Advances in neural information processing systems 13 (2000).  
+
+## SbS
+**Massively Parallel FPGA Hardware for Spike-By-Spike Networks**  
+David Rotermund, Klaus R. Pawelzik  
+https://doi.org/10.1101/500280  
+
+**Biologically plausible learning in a deep recurrent spiking network**
+David Rotermund, Klaus R. Pawelzik
+https://doi.org/10.1101/613471  
+
+
+
