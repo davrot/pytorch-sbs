@@ -5,6 +5,7 @@ from network.Parameter import Config
 import numpy as np
 from network.SbSLayer import SbSLayer
 from network.NNMFLayer import NNMFLayer
+from network.NNMFLayerSbSBP import NNMFLayerSbSBP
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
 
@@ -43,7 +44,9 @@ def save_weight_and_bias(
         # Save the NNMF Weights
         # ################################################
 
-        if isinstance(network[id], NNMFLayer) is True:
+        if (isinstance(network[id], NNMFLayer) is True) or (
+            isinstance(network[id], NNMFLayerSbSBP) is True
+        ):
             if network[id]._w_trainable is True:
 
                 np.save(

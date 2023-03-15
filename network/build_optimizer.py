@@ -3,6 +3,7 @@ import torch
 from network.Parameter import Config
 from network.SbSLayer import SbSLayer
 from network.NNMFLayer import NNMFLayer
+from network.NNMFLayerSbSBP import NNMFLayerSbSBP
 
 from network.Conv2dApproximation import Conv2dApproximation
 from network.Adam import Adam
@@ -28,9 +29,10 @@ def build_optimizer(
             parameter_list_weights.append(network[id]._weights)
             parameter_list_sbs.append(True)
 
-        if (isinstance(network[id], NNMFLayer) is True) and (
-            network[id]._w_trainable is True
-        ):
+        if (
+            (isinstance(network[id], NNMFLayer) is True)
+            or (isinstance(network[id], NNMFLayerSbSBP) is True)
+        ) and (network[id]._w_trainable is True):
             parameter_list_weights.append(network[id]._weights)
             parameter_list_sbs.append(True)
 

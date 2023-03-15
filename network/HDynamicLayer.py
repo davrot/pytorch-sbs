@@ -383,7 +383,7 @@ class FunctionalSbS(torch.autograd.Function):
             grad_output /= last_grad_scale
         grad_output_scale = last_grad_scale.clone()
 
-        input /= input.sum(dim=1, keepdim=True, dtype=weights.dtype)
+        input /= input.sum(dim=1, keepdim=True, dtype=weights.dtype) + 1e-20
 
         # #################################################
         # User doesn't want us to calculate the gradients

@@ -249,7 +249,9 @@ class NNMFLayer(torch.nn.Module):
         else:
             self.last_input_data = None
 
-        input_convolved = input_convolved / input_convolved.sum(dim=1, keepdim=True)
+        input_convolved = input_convolved / (
+            input_convolved.sum(dim=1, keepdim=True) + 1e-20
+        )
 
         h = torch.tile(
             self._h_initial.unsqueeze(0).unsqueeze(-1).unsqueeze(-1),

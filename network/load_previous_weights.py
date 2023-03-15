@@ -5,6 +5,7 @@ import numpy as np
 
 from network.SbSLayer import SbSLayer
 from network.NNMFLayer import NNMFLayer
+from network.NNMFLayerSbSBP import NNMFLayerSbSBP
 
 from network.SplitOnOffLayer import SplitOnOffLayer
 from network.Conv2dApproximation import Conv2dApproximation
@@ -48,7 +49,9 @@ def load_previous_weights(
                 )
                 logging.info(f"Weights file used for layer {id} : {file_to_load[0]}")
 
-        if isinstance(network[id], NNMFLayer) is True:
+        if (isinstance(network[id], NNMFLayer) is True) or (
+            isinstance(network[id], NNMFLayerSbSBP) is True
+        ):
             filename_wilcard = os.path.join(
                 overload_path, f"Weight_L{id}_*{post_fix}.npy"
             )
