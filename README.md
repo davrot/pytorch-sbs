@@ -65,3 +65,19 @@ Yarib Nevarez, David Rotermund, Klaus R. Pawelzik, Alberto Garcia-Ortiz
 https://doi.org/10.1109/access.2021.3085216  
 
 
+# Tested installation (under Fedora 37)
+
+mkdir PySource  
+cd PySource  
+wget https://www.python.org/ftp/python/3.11.2/Python-3.11.2.tgz  
+tar -xvzf Python-3.11.2.tgz  
+cd Python-3.11.2  
+./configure --prefix=/home/[YOURUSERNAME]/P3.11 --enable-optimizations  
+make -j 10  
+make install  
+
+cd /home/[YOURUSERNAME]/P3.11/bin  
+./pip3 install --upgrade pip  
+./pip3 install numpy scipy pandas flake8 pep8-naming black matplotlib seaborn ipython jupyterlab mypy dataclasses-json dataconf mat73 ipympl torch torchtext pywavelets scikit-image opencv-python scikit-learn tensorflow_datasets tensorboard tqdm argh sympy jsmin pybind11 pybind11-stubgen pigar asciichartpy torchvision torchaudio tensorflow natsort  
+
+Please adapt the .env file in the network directory before compling the PyBind11 SbS modules. 
